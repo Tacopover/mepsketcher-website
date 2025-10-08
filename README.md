@@ -19,6 +19,7 @@ MepSketcher is a specialized CAD-like application for designing MEP (Mechanical,
 This site is deployed using GitHub Pages.
 
 ### To Deploy:
+
 1. Push changes to the `main` branch
 2. Go to repository Settings → Pages
 3. Set Source to "Deploy from a branch"
@@ -28,6 +29,7 @@ This site is deployed using GitHub Pages.
 Your site will be available at: `https://tacopover.github.io/mepsketcher-website/`
 
 ### Custom Domain Setup:
+
 1. Add a `CNAME` file with `mepsketcher.com`
 2. Configure DNS settings at your domain registrar:
    - A records pointing to GitHub Pages IPs
