@@ -144,6 +144,7 @@ out/
 # Configuration files with secrets
 config.local.js
 secrets.json
+supabase-config.local.js
 
 # ========================================== 
 # Testing

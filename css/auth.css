@@ -394,6 +394,295 @@
     color: var(--text-primary);
 }
 
+/* ==========================================
+   Organization Section Styles
+   ========================================== */
+
+.organization-info {
+    padding: var(--spacing-md);
+}
+
+.org-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--border-light);
+}
+
+.org-name {
+    color: var(--primary-color);
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.org-role {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.role-badge.admin {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.role-badge.member {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+/* Organization Members */
+.org-members-section {
+    margin-top: var(--spacing-lg);
+}
+
+.org-members-section h3 {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+    font-size: 1.2rem;
+}
+
+.org-members-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.org-member-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background-color: var(--background-light);
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+}
+
+.member-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.member-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.member-role {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.member-role.admin {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.member-role.member {
+    background-color: var(--text-secondary);
+    color: white;
+}
+
+/* Add Member Section */
+.add-member-section {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+    border-top: 2px solid var(--border-light);
+}
+
+.add-member-section h4 {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+    font-size: 1rem;
+}
+
+.form-inline {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: flex-end;
+}
+
+.form-inline .form-input {
+    flex: 1;
+}
+
+/* ==========================================
+   License Card Styles (New Design)
+   ========================================== */
+
+.license-card {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
+    box-shadow: var(--shadow-md);
+    transition: box-shadow 0.3s ease;
+}
+
+.license-card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.license-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 2px solid var(--border-light);
+}
+
+.license-org-name {
+    color: var(--text-primary);
+    font-size: 1.3rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.license-type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: var(--spacing-xs);
+}
+
+.license-status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.license-status-badge.active {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.license-status-badge.expired {
+    background-color: #f44336;
+    color: white;
+}
+
+/* License Stats */
+.license-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--spacing-md);
+    background-color: var(--background-light);
+    border-radius: 8px;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stat-value.positive {
+    color: #4CAF50;
+}
+
+.stat-value.negative {
+    color: #f44336;
+}
+
+/* License Actions Section */
+.license-actions-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.add-licenses-form {
+    padding: var(--spacing-md);
+    background-color: var(--background-light);
+    border-radius: 8px;
+}
+
+.add-licenses-form label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.9rem;
+}
+
+.license-actions-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+/* License Purchase Form */
+.license-purchase-form {
+    max-width: 400px;
+    margin: var(--spacing-lg) auto;
+    padding: var(--spacing-lg);
+    background-color: var(--background-light);
+    border-radius: 8px;
+}
+
+.license-purchase-form h4 {
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-md);
+    text-align: center;
+}
+
+/* Button Styles */
+.btn-success {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #45a049;
+}
+
+.btn-danger {
+    background-color: #f44336;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #da190b;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .auth-card {
@@ -432,6 +721,25 @@
 
     .btn-small {
         width: 100%;
+    }
+
+    .form-inline {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .license-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .license-actions-buttons {
+        flex-direction: column;
+    }
+
+    .org-member-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-sm);
     }
 }
 

@@ -40,7 +40,7 @@
                 </div>
             </div>
 
-            <!-- Dashboard Cards -->
+            <!-- Dashboard Grid -->
             <div class="dashboard-grid">
                 <!-- Account Overview Card -->
                 <div class="dashboard-card">
@@ -67,17 +67,33 @@
                     <div class="dashboard-card-content">
                         <p><strong>Active Licenses:</strong> <span id="activeLicenses">0</span></p>
                         <p><strong>Total Licenses:</strong> <span id="totalLicenses">0</span></p>
-                        <div class="mt-1">
-                            <button class="btn btn-primary btn-small" id="buyLicenseBtn">Buy License</button>
+                        <p><strong>Available:</strong> <span id="availableLicenses">0</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Organization Section -->
+            <div class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <h2 class="dashboard-card-title">Organization</h2>
+                    <span class="card-icon">🏢</span>
+                </div>
+                <div class="dashboard-card-content">
+                    <div id="organizationContainer">
+                        <!-- Organization info will be loaded here -->
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🏢</div>
+                            <h3>No Organization</h3>
+                            <p>You need to create an organization to manage licenses</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- My Licenses Section -->
+            <!-- Licenses Section -->
             <div class="dashboard-card">
                 <div class="dashboard-card-header">
-                    <h2 class="dashboard-card-title">My Licenses</h2>
+                    <h2 class="dashboard-card-title">Licenses</h2>
                     <span class="card-icon">📜</span>
                 </div>
                 <div class="dashboard-card-content">
@@ -86,8 +102,7 @@
                         <div class="empty-state">
                             <div class="empty-state-icon">📦</div>
                             <h3>No Licenses Yet</h3>
-                            <p>Purchase a license to start using MepSketcher</p>
-                            <button class="btn btn-primary" id="buyLicenseBtn2">Buy Your First License</button>
+                            <p>Purchase licenses to start using MepSketcher</p>
                         </div>
                     </div>
                 </div>
@@ -107,7 +122,8 @@
     <!-- Include Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- Include our scripts -->
+    <!-- Include our scripts - IMPORTANT: Load local config first -->
+    <script src="js/supabase-config.local.js"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/dashboard.js"></script>
