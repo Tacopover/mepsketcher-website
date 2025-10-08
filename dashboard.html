@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Manage your MepSketcher licenses and account">
+    <title>Dashboard - MepSketcher</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="index.html" class="brand-link">
+                    <span class="logo-text">MepSketcher</span>
+                </a>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+                <li><a href="#" class="nav-link" id="signOutBtn">Sign Out</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Dashboard Section -->
+    <section class="dashboard-section">
+        <div class="dashboard-container">
+            <!-- Dashboard Header -->
+            <div class="dashboard-header">
+                <h1 class="dashboard-title">My Dashboard</h1>
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-details">
+                        <h3 id="userName">Loading...</h3>
+                        <p id="userEmail">Loading...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Cards -->
+            <div class="dashboard-grid">
+                <!-- Account Overview Card -->
+                <div class="dashboard-card">
+                    <div class="dashboard-card-header">
+                        <h2 class="dashboard-card-title">Account Overview</h2>
+                        <span class="card-icon">👤</span>
+                    </div>
+                    <div class="dashboard-card-content">
+                        <p><strong>Email:</strong> <span id="accountEmail">-</span></p>
+                        <p><strong>Email Verified:</strong> <span id="emailVerified">-</span></p>
+                        <p><strong>Member Since:</strong> <span id="memberSince">-</span></p>
+                        <div class="mt-1">
+                            <button class="btn btn-secondary btn-small" id="updateProfileBtn">Update Profile</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- License Summary Card -->
+                <div class="dashboard-card">
+                    <div class="dashboard-card-header">
+                        <h2 class="dashboard-card-title">License Summary</h2>
+                        <span class="card-icon">🔑</span>
+                    </div>
+                    <div class="dashboard-card-content">
+                        <p><strong>Active Licenses:</strong> <span id="activeLicenses">0</span></p>
+                        <p><strong>Total Licenses:</strong> <span id="totalLicenses">0</span></p>
+                        <div class="mt-1">
+                            <button class="btn btn-primary btn-small" id="buyLicenseBtn">Buy License</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Licenses Section -->
+            <div class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <h2 class="dashboard-card-title">My Licenses</h2>
+                    <span class="card-icon">📜</span>
+                </div>
+                <div class="dashboard-card-content">
+                    <div id="licensesContainer">
+                        <!-- Licenses will be loaded here dynamically -->
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📦</div>
+                            <h3>No Licenses Yet</h3>
+                            <p>Purchase a license to start using MepSketcher</p>
+                            <button class="btn btn-primary" id="buyLicenseBtn2">Buy Your First License</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2025 MepSketcher. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Include Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Include our scripts -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
