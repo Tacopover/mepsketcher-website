@@ -25,20 +25,22 @@ Open `js/supabase-config.local.js` and replace the placeholder values with your 
 
 ```javascript
 const SUPABASE_CONFIG = {
-    url: 'https://your-project.supabase.co',
-    anonKey: 'your-actual-anon-key-here'
+  url: "https://your-project.supabase.co",
+  anonKey: "your-actual-anon-key-here",
 };
 ```
 
 ### 3. Get Your Credentials
 
 Find your Supabase credentials at:
+
 - Go to your Supabase project dashboard
 - Click on "Project Settings" (gear icon)
 - Navigate to "API" section
 - Copy the "Project URL" and "anon public" key
 
 **Important Notes:**
+
 - The `anonKey` is safe to use in client-side code - it's designed for browser use
 - Do NOT include the `serviceRoleKey` in client-side code
 - The service role key should only be used in server-side environments
@@ -65,12 +67,14 @@ In your HTML files, load the scripts in this order:
 ## Security Best Practices
 
 ### ✅ DO:
+
 - Keep `supabase-config.local.js` in `.gitignore`
 - Use the `anonKey` for client-side applications
 - Commit the `.example` file to help other developers
 - Update credentials in `supabase-config.local.js` only
 
 ### ❌ DON'T:
+
 - Commit `supabase-config.local.js` to the repository
 - Put credentials directly in HTML files
 - Use the `serviceRoleKey` in client-side code
@@ -139,5 +143,6 @@ For GitHub Pages, you can create a separate production config:
 ## Questions?
 
 If you have questions about the configuration setup, contact the project maintainer or refer to the Supabase documentation:
+
 - https://supabase.com/docs/guides/api
 - https://supabase.com/docs/guides/auth

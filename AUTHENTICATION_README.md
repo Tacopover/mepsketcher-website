@@ -57,6 +57,7 @@ For full functionality, ensure these tables exist in your Supabase database.
 The website uses the **same tables** as the MepSketcher desktop application:
 
 #### `organizations` table:
+
 ```sql
 CREATE TABLE organizations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -93,6 +94,7 @@ CREATE POLICY "Owners can update organizations"
 ```
 
 #### `organization_members` table:
+
 ```sql
 CREATE TABLE organization_members (
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
@@ -125,6 +127,7 @@ CREATE POLICY "Users can view organization members"
 ```
 
 #### `organization_licenses` table:
+
 ```sql
 CREATE TABLE organization_licenses (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -176,6 +179,7 @@ CREATE POLICY "Owners can manage licenses"
 ```
 
 #### `user_profiles` table (optional, for extended user data):
+
 ```sql
 CREATE TABLE user_profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -197,12 +201,14 @@ CREATE POLICY "Users can update own profile"
     ON user_profiles FOR UPDATE
     USING (auth.uid() = id);
 ```
+
     ON user_profiles FOR SELECT
     USING (auth.uid() = id);
 
 CREATE POLICY "Users can update own profile"
-    ON user_profiles FOR UPDATE
-    USING (auth.uid() = id);
+ON user_profiles FOR UPDATE
+USING (auth.uid() = id);
+
 ```
 
 ## 🚀 Testing the Features
@@ -395,6 +401,7 @@ Before merging this branch to main:
 
 ---
 
-**Branch**: `feature/user-authentication`  
-**Created**: 2025-10-08  
+**Branch**: `feature/user-authentication`
+**Created**: 2025-10-08
 **Status**: 🚧 In Development
+```

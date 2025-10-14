@@ -64,12 +64,32 @@ function setupEventListeners() {
         signOutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             
+            console.log('Sign out button clicked');
+            
             const result = await authService.signOut();
             
             if (result.success) {
+                console.log('Sign out successful, redirecting...');
                 window.location.href = 'index.html';
             } else {
-                alert('Failed to sign out. Please try again.');
+                console.error('Sign out failed:', result.error);
+                
+                // Show user-friendly message
+                const shouldForceLogout = confirm(
+                    'Failed to sign out properly. Would you like to force logout? ' +
+                    'This will clear all local data and redirect you to the home page.'
+                );
+                
+                if (shouldForceLogout) {
+                    console.log('User requested force logout');
+                    
+                    // Force clear everything using the proper method
+                    authService.currentUser = null;
+                    authService.clearAllSupabaseData();
+                    
+                    // Redirect immediately
+                    window.location.href = 'index.html';
+                }
             }
         });
     }

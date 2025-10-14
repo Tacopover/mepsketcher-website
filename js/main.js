@@ -115,7 +115,35 @@ document.addEventListener('DOMContentLoaded', function() {
     if (copyrightElement && copyrightElement.textContent.includes('2025')) {
         copyrightElement.textContent = copyrightElement.textContent.replace('2025', currentYear);
     }
+
+    // Initialize navigation updates
+    updateNavigationForAuth();
+    
+    // Listen for auth state changes to update navigation
+    document.addEventListener('authStateChanged', updateNavigationForAuth);
 });
+
+// Update navigation based on authentication status
+function updateNavigationForAuth() {
+    const signInLink = document.querySelector('a[href="login.html"]');
+    
+    if (!signInLink) return; // Not on a page with sign in link
+    
+    // Check if user is authenticated
+    const isAuthenticated = typeof authService !== 'undefined' && authService.isAuthenticated();
+    
+    if (isAuthenticated) {
+        // User is logged in - change to "My Profile"
+        signInLink.textContent = 'My Profile';
+        signInLink.href = 'dashboard.html';
+        signInLink.title = 'Go to your profile dashboard';
+    } else {
+        // User is not logged in - show "Sign In"
+        signInLink.textContent = 'Sign In';
+        signInLink.href = 'login.html';
+        signInLink.title = 'Sign in to your account';
+    }
+}
 
 // Prevent body scroll when mobile menu is open
 function toggleBodyScroll(shouldLock) {

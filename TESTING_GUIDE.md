@@ -17,8 +17,8 @@ CREATE POLICY "Users can view their organization licenses"
 ON organization_licenses FOR SELECT
 USING (
   organization_id IN (
-    SELECT organization_id 
-    FROM organization_members 
+    SELECT organization_id
+    FROM organization_members
     WHERE user_id = auth.uid()
   )
 );
@@ -28,8 +28,8 @@ CREATE POLICY "Organization owners can manage licenses"
 ON organization_licenses FOR ALL
 USING (
   organization_id IN (
-    SELECT id 
-    FROM organizations 
+    SELECT id
+    FROM organizations
     WHERE owner_id = auth.uid()
   )
 );
@@ -38,6 +38,7 @@ USING (
 ### 2. Verify Table Structure
 
 Check that your `organization_licenses` table has these columns:
+
 - `id` (uuid, primary key)
 - `organization_id` (uuid, foreign key to organizations)
 - `total_licenses` (integer)
@@ -78,6 +79,7 @@ Check that your `organization_licenses` table has these columns:
 ### Test 4: View Dashboard
 
 1. After signing in, you should see:
+
    - Your name at the top (e.g., "Welcome back, Test User!")
    - A profile section with your email
    - A "License Summary" section showing 0 active licenses
@@ -99,7 +101,8 @@ Check that your `organization_licenses` table has these columns:
 9. Enter a type (e.g., "professional")
 10. Click OK
 
-**Expected Result**: 
+**Expected Result**:
+
 - Success message: "License created successfully! Refreshing..."
 - Page refreshes automatically
 - You should now see a license card with:
@@ -132,6 +135,7 @@ Check that your `organization_licenses` table has these columns:
 3. Click OK
 
 **Expected Result**:
+
 - Success message
 - Total Licenses should update to 8 (5 + 3)
 - Available should show 8
@@ -143,6 +147,7 @@ Check that your `organization_licenses` table has these columns:
 3. Click OK
 
 **Expected Result**:
+
 - Success message
 - Expires date should be 6 months later than before
 
@@ -157,6 +162,7 @@ To test renewal:
 5. Click OK to confirm
 
 **Expected Result**:
+
 - Success message
 - Expires date should be set to 1 year from today
 - Status should change back to "ACTIVE"
@@ -170,6 +176,7 @@ To test renewal:
 5. Click OK
 
 **Expected Result**:
+
 - Since you already have a license, it should UPDATE the existing one
 - Total should change to 10
 - Type should change to ENTERPRISE
@@ -181,11 +188,13 @@ To test renewal:
 ### Issue: "Error loading licenses"
 
 **Possible Causes**:
+
 1. RLS policies not set up correctly
 2. User not authenticated
 3. Database connection issue
 
 **Solutions**:
+
 1. Check browser console for specific error
 2. Verify RLS policies are created
 3. Try signing out and back in
@@ -194,11 +203,13 @@ To test renewal:
 ### Issue: "Organization not created"
 
 **Possible Causes**:
+
 1. Duplicate organization name
 2. RLS policy blocking insert
 3. Missing permissions
 
 **Solutions**:
+
 1. Try a different organization name
 2. Check Supabase table permissions
 3. Verify owner_id is set to auth.uid()
@@ -206,11 +217,13 @@ To test renewal:
 ### Issue: License doesn't display after purchase
 
 **Possible Causes**:
+
 1. License created but query not returning it
 2. RLS policy blocking SELECT
 3. organization_members table not updated
 
 **Solutions**:
+
 1. Check browser console for errors
 2. Manually check organization_licenses table in Supabase
 3. Verify organization_members has a row linking you to the organization
@@ -218,11 +231,13 @@ To test renewal:
 ### Issue: Actions (Add/Extend/Renew) not working
 
 **Possible Causes**:
+
 1. RLS policy blocking UPDATE
 2. User not organization owner
 3. Database constraint violation
 
 **Solutions**:
+
 1. Verify you're the organization owner
 2. Check UPDATE policy in RLS
 3. Check browser console for specific error
@@ -230,6 +245,7 @@ To test renewal:
 ## Success Criteria
 
 ✅ You should be able to:
+
 1. Create an account and verify email
 2. Sign in and see the dashboard
 3. Create an organization automatically on first purchase
@@ -247,12 +263,14 @@ Once all tests pass:
 
 1. **Document any issues** you encountered
 2. **Consider enhancements**:
+
    - Multiple licenses per organization?
    - Better error messages?
    - Loading states?
    - Confirmation dialogs?
 
 3. **Prepare for Phase 2** (Payment Integration):
+
    - Choose payment provider (Stripe/Paddle)
    - Design payment flow
    - Create webhook handlers

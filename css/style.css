@@ -357,6 +357,355 @@ h3 {
 }
 
 /* ========================================== */
+/* Pricing Section */
+/* ========================================== */
+
+.pricing {
+    padding: var(--spacing-xl) 0;
+    background-color: var(--card-background);
+}
+
+.section-subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin-bottom: var(--spacing-lg);
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.pricing-card {
+    background-color: var(--card-background);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+    border: 2px solid var(--border-light);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.pricing-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-light);
+}
+
+.pricing-card.featured {
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+.pricing-card.featured:hover {
+    transform: scale(1.05) translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.pricing-badge {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    text-align: center;
+    padding: var(--spacing-xs);
+    font-size: 0.9rem;
+    font-weight: 600;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+}
+
+.pricing-header {
+    padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
+    text-align: center;
+    padding-top: calc(var(--spacing-lg) + 2rem); /* Account for badge */
+}
+
+.pricing-card:not(.featured) .pricing-header {
+    padding-top: var(--spacing-lg);
+}
+
+.pricing-title {
+    color: var(--primary-color);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+.pricing-price {
+    margin-bottom: var(--spacing-sm);
+}
+
+.price-amount {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.price-period {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    display: block;
+    margin-top: 0.25rem;
+}
+
+.pricing-features {
+    padding: 0 var(--spacing-md);
+    flex-grow: 1;
+}
+
+.feature-list {
+    list-style: none;
+    padding: 0;
+}
+
+.feature-list li {
+    padding: var(--spacing-xs) 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.feature-list li:before {
+    content: '';
+    color: var(--primary-color);
+    font-weight: bold;
+    margin-right: var(--spacing-xs);
+}
+
+.pricing-footer {
+    padding: var(--spacing-md);
+    margin-top: auto;
+}
+
+.btn-full {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+}
+
+.pricing-info {
+    text-align: center;
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background-color: var(--background-color);
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.pricing-note {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.pricing-note strong {
+    color: var(--text-primary);
+}
+
+/* ========================================== */
+/* Paddle Modal Styles */
+/* ========================================== */
+
+.paddle-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: var(--spacing-md);
+}
+
+.paddle-modal {
+    background-color: var(--card-background);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.paddle-modal-header {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.paddle-modal-header h3 {
+    margin: 0;
+    color: var(--primary-color);
+    font-size: 1.4rem;
+}
+
+.paddle-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-light);
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.paddle-modal-close:hover {
+    background-color: var(--background-color);
+    color: var(--text-primary);
+}
+
+.paddle-modal-body {
+    padding: var(--spacing-md);
+}
+
+/* Form Styles */
+.trial-form,
+.quote-form {
+    max-width: 100%;
+}
+
+.form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-sm);
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-light);
+}
+
+/* Success/Error Messages */
+.success-message,
+.error-message {
+    text-align: center;
+    padding: var(--spacing-md) 0;
+}
+
+.success-icon,
+.error-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.success-message p,
+.error-message p {
+    margin-bottom: var(--spacing-sm);
+    line-height: 1.6;
+}
+
+.trial-info {
+    background-color: var(--background-color);
+    padding: var(--spacing-md);
+    border-radius: 8px;
+    margin-top: var(--spacing-md);
+    text-align: left;
+}
+
+.trial-info h4 {
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-sm);
+}
+
+.trial-info ol {
+    color: var(--text-secondary);
+    padding-left: var(--spacing-md);
+}
+
+.trial-info li {
+    margin-bottom: var(--spacing-xs);
+}
+
+/* Mobile Responsiveness for Modals */
+@media (max-width: 768px) {
+    .paddle-modal {
+        margin: var(--spacing-sm);
+        max-height: 95vh;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+    }
+}
+
+/* ========================================== */
 /* Screenshots Section */
 /* ========================================== */
 

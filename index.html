@@ -6,6 +6,16 @@
     <meta name="description" content="MepSketcher - Professional MEP Design Tool for PDF Drawings. Design MEP networks directly on your PDF drawings with an intuitive interface.">
     <meta name="keywords" content="MEP, design tool, PDF, mechanical, electrical, plumbing, CAD, HVAC">
     <meta name="author" content="MepSketcher">
+    
+    <!-- Content Security Policy for Paddle integration -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self'; 
+        script-src 'self' 'unsafe-inline' https://cdn.paddle.com; 
+        frame-src 'self' https://*.paddle.com https://sandbox-buy.paddle.com https://buy.paddle.com; 
+        connect-src 'self' https://*.paddle.com https://sandbox-checkout-service.paddle.com https://checkout-service.paddle.com; 
+        img-src 'self' data: https://*.paddle.com; 
+        style-src 'self' 'unsafe-inline';
+    ">
     <title>MepSketcher - Professional MEP Design Tool for PDF Drawings</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -19,6 +29,7 @@
             <ul class="nav-menu">
                 <li><a href="#home" class="nav-link">Home</a></li>
                 <li><a href="#features" class="nav-link">Features</a></li>
+                <li><a href="#pricing" class="nav-link">Pricing</a></li>
                 <li><a href="#screenshots" class="nav-link">Screenshots</a></li>
                 <li><a href="#getting-started" class="nav-link">Getting Started</a></li>
                 <li><a href="login.html" class="nav-link">Sign In</a></li>
@@ -103,6 +114,95 @@
                     <h3 class="feature-title">Flexible Tools</h3>
                     <p class="feature-description">Adapt your workflow with customizable tool settings, line colors, weights, and annotation styles.</p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing">
+        <div class="container">
+            <h2 class="section-title">Choose Your License</h2>
+            <p class="section-subtitle">Start with a free trial or get full access with our yearly license</p>
+            <div class="pricing-grid">
+                <!-- Trial License Card -->
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Free Trial</h3>
+                        <div class="pricing-price">
+                            <span class="price-amount">Free</span>
+                            <span class="price-period">30 days</span>
+                        </div>
+                    </div>
+                    <div class="pricing-features">
+                        <ul class="feature-list">
+                            <li>✓ Full access to all features</li>
+                            <li>✓ PDF integration</li>
+                            <li>✓ All network types</li>
+                            <li>✓ Properties panel</li>
+                            <li>✓ Email support</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-footer">
+                        <button class="btn btn-secondary btn-full" onclick="startTrial()">Start Free Trial</button>
+                    </div>
+                </div>
+
+                <!-- Yearly License Card - Featured -->
+                <div class="pricing-card featured">
+                    <div class="pricing-badge">Most Popular</div>
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Yearly License</h3>
+                        <div class="pricing-price">
+                            <span class="price-amount">$299</span>
+                            <span class="price-period">per year</span>
+                        </div>
+                    </div>
+                    <div class="pricing-features">
+                        <ul class="feature-list">
+                            <li>✓ All trial features</li>
+                            <li>✓ Unlimited usage</li>
+                            <li>✓ Priority support</li>
+                            <li>✓ Regular updates</li>
+                            <li>✓ Commercial use</li>
+                            <li>✓ 30-day money back guarantee</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-footer">
+                        <button class="btn btn-primary btn-full" onclick="purchaseYearlyLicense()">Buy Yearly License</button>
+                    </div>
+                </div>
+
+                <!-- Custom Quote Card -->
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Enterprise</h3>
+                        <div class="pricing-price">
+                            <span class="price-amount">Custom</span>
+                            <span class="price-period">100+ licenses</span>
+                        </div>
+                    </div>
+                    <div class="pricing-features">
+                        <ul class="feature-list">
+                            <li>✓ Volume discounts</li>
+                            <li>✓ Site licenses</li>
+                            <li>✓ Dedicated support</li>
+                            <li>✓ Custom training</li>
+                            <li>✓ Enterprise features</li>
+                            <li>✓ Flexible payment terms</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-footer">
+                        <button class="btn btn-secondary btn-full" onclick="requestCustomQuote()">Request Quote</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Additional Info -->
+            <div class="pricing-info">
+                <p class="pricing-note">
+                    <strong>Note:</strong> All licenses include free updates during the license period. 
+                    No subscription required - pay once, use for the full year.
+                </p>
             </div>
         </div>
     </section>
@@ -287,6 +387,20 @@
         </div>
     </footer>
 
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Authentication -->
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <!-- Paddle SDK v2 -->
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+    
+    <!-- MepSketcher Scripts -->
+    <script src="js/paddle-config.js"></script>
+    <script src="js/paddle.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>
