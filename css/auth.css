@@ -284,6 +284,10 @@
     transition: all 0.3s ease;
 }
 
+.dashboard-card + .dashboard-card {
+    margin-top: var(--spacing-lg);
+}
+
 .dashboard-card:hover {
     border-color: var(--primary-light);
     box-shadow: var(--shadow-md);
@@ -455,7 +459,7 @@
 .org-members-list {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: 0;
     margin-bottom: var(--spacing-lg);
 }
 
@@ -500,9 +504,9 @@
 
 /* Add Member Section */
 .add-member-section {
-    margin-top: var(--spacing-lg);
-    padding-top: var(--spacing-lg);
-    border-top: 2px solid var(--border-light);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 2px solid var(--border-light);
 }
 
 .add-member-section h4 {
@@ -537,6 +541,11 @@
 
 .license-card:hover {
     box-shadow: var(--shadow-lg);
+}
+
+/* License Info - Direct display without card wrapper */
+.license-info {
+    margin-bottom: var(--spacing-md);
 }
 
 .license-card-header {
@@ -641,6 +650,25 @@
     color: var(--text-primary);
     margin-bottom: var(--spacing-sm);
     font-size: 0.9rem;
+}
+
+.purchase-licenses-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    background-color: var(--background-light);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.purchase-licenses-section .purchase-text {
+    margin: 0;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 1rem;
 }
 
 .license-actions-buttons {

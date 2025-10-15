@@ -198,7 +198,23 @@ async function displayOrganizationInfo(org) {
         if (!error && members) {
             membersHtml = `
                 <div class="org-members-section">
-                    <h3>Organization Members</h3>
+                    <div class="add-member-section">
+                        <h4>Add New Member</h4>
+                        <div class="form-inline">
+                            <input type="email" 
+                                   id="newMemberEmail" 
+                                   placeholder="Enter member email" 
+                                   class="form-input">
+                            <select id="newMemberRole" class="form-input">
+                                <option value="member">Member</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button class="btn btn-primary btn-small" id="addMemberBtn" data-org-id="${org.id}">
+                                Add Member
+                            </button>
+                        </div>
+                    </div>
+                    <h3>Organization Members (${members.length})</h3>
                     <div class="org-members-list">
                         ${members.map(member => `
                             <div class="org-member-item">
@@ -215,22 +231,6 @@ async function displayOrganizationInfo(org) {
                                 ` : ''}
                             </div>
                         `).join('')}
-                    </div>
-                    <div class="add-member-section">
-                        <h4>Add New Member</h4>
-                        <div class="form-inline">
-                            <input type="email" 
-                                   id="newMemberEmail" 
-                                   placeholder="Enter member email" 
-                                   class="form-input">
-                            <select id="newMemberRole" class="form-input">
-                                <option value="member">Member</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                            <button class="btn btn-primary btn-small" id="addMemberBtn" data-org-id="${org.id}">
-                                Add Member
-                            </button>
-                        </div>
                     </div>
                 </div>
             `;
@@ -482,7 +482,7 @@ function displayLicenses(licenses, organizations) {
 // Create license card HTML
 function createLicenseCard(license, orgName) {
     const card = document.createElement('div');
-    card.className = 'license-card';
+    card.className = 'license-info';
 
     const isActive = new Date(license.expires_at) > new Date();
     const statusClass = isActive ? 'active' : 'expired';
@@ -524,35 +524,24 @@ function createLicenseCard(license, orgName) {
             </div>
         </div>
         <div class="license-actions-section">
-            <div class="add-licenses-form">
-                <label for="addLicenseCount_${license.id}">Add More Licenses (1-1000)</label>
-                <div class="form-inline">
-                    <input type="number" 
-                           id="addLicenseCount_${license.id}" 
-                           class="form-input" 
-                           min="1" 
-                           max="1000" 
-                           value="5" 
-                           placeholder="Count">
-                    <button class="btn btn-primary btn-small add-licenses-btn" 
-                            data-license-id="${license.id}">
-                        Add Licenses
-                    </button>
-                </div>
+            <div class="purchase-licenses-section">
+                <p class="purchase-text">Purchase additional licenses</p>
+                <button class="btn btn-primary btn-small buy-licenses-btn" 
+                        data-license-id="${license.id}">
+                    Buy Now
+                </button>
             </div>
             <div class="license-actions-buttons">
                 ${!isActive ? '<button class="btn btn-success btn-small renew-btn">Renew License (+1 year)</button>' : ''}
-                <button class="btn btn-secondary btn-small extend-btn">Extend Expiry</button>
             </div>
         </div>
     `;
 
     // Add event listeners
-    const addBtn = card.querySelector('.add-licenses-btn');
-    if (addBtn) {
-        addBtn.addEventListener('click', () => {
-            const count = document.getElementById(`addLicenseCount_${license.id}`).value;
-            handleAddLicensesToExisting(license, count);
+    const buyBtn = card.querySelector('.buy-licenses-btn');
+    if (buyBtn) {
+        buyBtn.addEventListener('click', () => {
+            handleBuyMoreLicenses(license);
         });
     }
 
@@ -560,13 +549,6 @@ function createLicenseCard(license, orgName) {
     if (renewBtn) {
         renewBtn.addEventListener('click', () => {
             handleRenewLicense(license);
-        });
-    }
-
-    const extendBtn = card.querySelector('.extend-btn');
-    if (extendBtn) {
-        extendBtn.addEventListener('click', () => {
-            handleExtendLicense(license);
         });
     }
 
@@ -749,6 +731,20 @@ async function handleRenewLicense(license) {
         alert('License renewed successfully! Expiry extended by 1 year.');
         await loadLicenses();
     }
+}
+
+// Handle buying more licenses via Paddle
+function handleBuyMoreLicenses(license) {
+    // Check if Paddle is available
+    if (typeof mepSketcherLicensing === 'undefined' || !mepSketcherLicensing) {
+        alert('Payment system not available. Please try again later.');
+        console.error('mepSketcherLicensing not initialized');
+        return;
+    }
+
+    // Open Paddle checkout for purchasing additional licenses
+    // The quantity will be specified in the Paddle checkout
+    mepSketcherLicensing.purchaseYearlyLicense();
 }
 
 // Handle extend license
