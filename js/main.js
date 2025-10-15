@@ -116,8 +116,8 @@ document.addEventListener('DOMContentLoaded', function() {
         copyrightElement.textContent = copyrightElement.textContent.replace('2025', currentYear);
     }
 
-    // Initialize navigation updates
-    updateNavigationForAuth();
+    // Wait for auth service to be ready before updating navigation
+    document.addEventListener('authReady', updateNavigationForAuth);
     
     // Listen for auth state changes to update navigation
     document.addEventListener('authStateChanged', updateNavigationForAuth);
@@ -134,7 +134,7 @@ function updateNavigationForAuth() {
     
     if (isAuthenticated) {
         // User is logged in - change to "My Profile"
-        signInLink.textContent = 'My Profile';
+        signInLink.textContent = 'Dashboard';
         signInLink.href = 'dashboard.html';
         signInLink.title = 'Go to your profile dashboard';
     } else {
@@ -153,3 +153,9 @@ function toggleBodyScroll(shouldLock) {
         document.body.style.overflow = '';
     }
 }
+
+console.log('Registering authReady event listener');
+document.addEventListener('authReady', function(event) {
+    console.log('authReady event received!', event.detail);
+    updateNavigationForAuth();
+});

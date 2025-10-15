@@ -42,6 +42,13 @@ class AuthService {
             });
 
             this.initialized = true;
+            
+            // Emit 'authReady' event - like raising an event in C#
+            console.log('About to dispatch authReady event');
+            document.dispatchEvent(new CustomEvent('authReady', {
+                detail: { authenticated: this.isAuthenticated() }
+            }));
+            console.log('authReady event dispatched');
         } catch (error) {
             console.error('Failed to initialize auth service:', error);
             throw error;
