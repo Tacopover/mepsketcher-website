@@ -7,14 +7,15 @@
     <meta name="keywords" content="MEP, design tool, PDF, mechanical, electrical, plumbing, CAD, HVAC">
     <meta name="author" content="MepSketcher">
     
-    <!-- Content Security Policy for Paddle integration -->
+    <!-- Content Security Policy for Paddle and Supabase integration -->
     <meta http-equiv="Content-Security-Policy" content="
-        default-src 'self'; 
-        script-src 'self' 'unsafe-inline' https://cdn.paddle.com https://cdn.jsdelivr.net; 
-        frame-src 'self' https://*.paddle.com https://sandbox-buy.paddle.com https://buy.paddle.com; 
-        connect-src 'self' https://*.paddle.com https://sandbox-checkout-service.paddle.com https://checkout-service.paddle.com; 
-        img-src 'self' data: https://*.paddle.com; 
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.paddle.com https://cdn.jsdelivr.net;
         style-src 'self' 'unsafe-inline';
+        connect-src 'self' https://*.paddle.com https://sandbox-checkout-service.paddle.com https://checkout-service.paddle.com https://*.supabase.co;
+        img-src 'self' data: https:;
+        font-src 'self' data:;
+        frame-src https://sandbox-buy.paddle.com https://buy.paddle.com;
     ">
     <title>MepSketcher - Professional MEP Design Tool for PDF Drawings</title>
     <link rel="stylesheet" href="css/style.css">

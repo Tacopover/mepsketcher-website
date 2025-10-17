@@ -26,6 +26,9 @@ class AuthService {
                 }
             );
 
+            // Make supabase client globally accessible for other modules (like paddle.js)
+            window.supabase = this.supabase;
+
             // Check for existing session
             const { data: { session } } = await this.supabase.auth.getSession();
             
@@ -86,51 +89,102 @@ class AuthService {
         }
     }
 
-    // Sign up new user
-    async signUp(email, password, name) {
+        // Sign up new user and create organization using Edge Function
+    async signUp(email, password, name, organizationName) {
         try {
-            const { data, error } = await this.supabase.auth.signUp({
-                email: email,
-                password: password,
-                options: {
-                    data: {
-                        name: name
-                    }
-                }
+            console.log(`Signing up user: ${email} with organization: ${organizationName || 'default'}`);
+            
+            const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/signup`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_CONFIG.anonKey,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`
+              },
+              body: JSON.stringify({
+                email,
+                password,
+                name,
+                organizationName
+              })
             });
 
-            if (error) throw error;
+            const data = await response.json();
+            
+            if (!response.ok || !data.success) {
+              console.error('Signup failed:', data.error);
+              throw new Error(data.error || 'Signup failed');
+            }
 
+            console.log('Signup successful:', data.user.id);
+
+            // All signups require email confirmation
+            console.log('Email confirmation required. Check your email.');
             return {
-                success: true,
-                user: data.user,
-                message: 'Account created! Please check your email to verify your account.'
+              success: true,
+              requiresEmailConfirmation: true,
+              message: data.message || 'Please check your email to confirm your account before signing in.',
+              user: data.user
             };
         } catch (error) {
-            console.error('Sign up error:', error);
-            return {
-                success: false,
-                error: error.message
-            };
+            console.error('Signup error:', error);
+            throw error;
         }
     }
 
     // Sign in existing user
     async signIn(email, password) {
         try {
+            console.log('Signing in user:', email);
+
+            // Call the signin Edge Function
+            const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/signin`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_CONFIG.anonKey,
+                    'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password
+                })
+            });
+
+            const result = await response.json();
+
+            if (!result.success) {
+                console.error('Signin failed:', result.error);
+                return {
+                    success: false,
+                    error: result.error
+                };
+            }
+
+            console.log('Signin successful:', result.user.id);
+            
+            if (result.pendingOrganizationsProcessed) {
+                console.log('Pending organizations were processed');
+            }
+
+            // Now sign in with Supabase client to establish session
             const { data, error } = await this.supabase.auth.signInWithPassword({
                 email: email,
                 password: password
             });
 
-            if (error) throw error;
+            if (error) {
+                console.error('Session establishment error:', error);
+                throw error;
+            }
 
             this.currentUser = data.user;
 
             return {
                 success: true,
                 user: data.user,
-                session: data.session
+                session: data.session,
+                pendingOrganizationsProcessed: result.pendingOrganizationsProcessed
             };
         } catch (error) {
             console.error('Sign in error:', error);
@@ -335,6 +389,9 @@ class AuthService {
                     }
                 }
             );
+            
+            // Update global reference
+            window.supabase = this.supabase;
             
             // Re-setup auth state listener
             this.supabase.auth.onAuthStateChange((event, session) => {

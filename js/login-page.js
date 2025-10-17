@@ -87,10 +87,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.success) {
             showMessage(loginMessage, 'Sign in successful! Redirecting...', 'success');
             
-            // Redirect to dashboard after 1 second
+            // Always redirect to dashboard after login
             setTimeout(() => {
                 window.location.href = 'dashboard.html';
-            }, 1000);
+            }, 800);
         } else {
             showMessage(loginMessage, `Error: ${result.error}`, 'error');
         }
@@ -102,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const name = document.getElementById('signupName').value;
         const email = document.getElementById('signupEmail').value;
+        const organizationName = document.getElementById('organizationName').value;
         const password = document.getElementById('signupPassword').value;
         const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
         const agreeTerms = document.getElementById('agreeTerms').checked;
@@ -124,10 +125,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         showMessage(signupMessage, 'Creating account...', 'info');
         
-        const result = await authService.signUp(email, password, name);
+        const result = await authService.signUp(email, password, name, organizationName);
         
         if (result.success) {
-            showMessage(signupMessage, result.message, 'success');
+            showMessage(signupMessage, 'Account created successfully! Please check your email to verify your account.', 'success');
             
             // Clear form
             signupForm.reset();

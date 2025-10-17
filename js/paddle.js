@@ -173,12 +173,36 @@ class MepSketcherLicensing {
     /**
      * Purchase yearly license using Paddle v2
      */
-    purchaseYearlyLicense() {
+    async purchaseYearlyLicense() {
         if (!this.isInitialized) {
             console.error('Paddle not initialized');
             this.showError('Payment system unavailable. Please try again later.');
             return;
         }
+
+        // Check if user is authenticated
+        if (typeof window.supabase === 'undefined') {
+            console.error('Supabase not initialized');
+            this.showError('Authentication system unavailable. Please try again later.');
+            return;
+        }
+
+        console.log('Checking authentication...');
+        
+        // Get current user
+        const { data: { user }, error: userError } = await window.supabase.auth.getUser();
+        
+        console.log('User data:', user);
+        console.log('User error:', userError);
+        
+        if (userError || !user) {
+            console.log('User not authenticated, showing login dialog');
+            // Show login dialog instead of redirecting
+            this.showLoginDialog();
+            return;
+        }
+
+        console.log('User is authenticated:', user.email);
 
         // Validate price ID first
         const priceId = PaddleConfig.products.yearly.id;
@@ -196,28 +220,29 @@ class MepSketcherLicensing {
 
         console.log('Using price ID:', priceId);
 
-        // Prepare custom data
+        // Prepare custom data with user information for webhook
         const customData = {
+            userId: user.id,
+            email: user.email,
             license_type: 'yearly',
             product: 'mepsketcher',
             version: '1.0',
             timestamp: new Date().toISOString()
         };
 
-        // Build checkout options object - simplified for debugging
+        // Build checkout options object
         const checkoutOptions = {
             settings: {
                 displayMode: "overlay",
                 theme: "light",
                 locale: "en"
             },
-            items: itemsList
+            items: itemsList,
+            customer: {
+                email: user.email
+            },
+            customData: customData
         };
-
-        // Only add customData if it's a valid object
-        if (customData && Object.keys(customData).length > 0) {
-            checkoutOptions.customData = customData;
-        }
 
         // Add discount code if available
         const discountCode = this.getCouponFromURL();
@@ -225,12 +250,12 @@ class MepSketcherLicensing {
             checkoutOptions.discountCode = discountCode;
         }
 
-        console.log('Checkout options:', JSON.stringify(checkoutOptions, null, 2));
+        console.log('Opening Paddle checkout with options:', JSON.stringify(checkoutOptions, null, 2));
 
         // Open Paddle v2 checkout using the exact syntax from documentation
         try {
             Paddle.Checkout.open(checkoutOptions);
-            console.log('Checkout opened successfully with items:', itemsList);
+            console.log('Paddle checkout opened successfully');
         } catch (error) {
             console.error('Failed to open checkout:', error);
             this.showError('Payment system unavailable. Please try again later.');
@@ -452,6 +477,27 @@ Generated: ${quoteData.timestamp}`;
                 <p>${message}</p>
                 <div class="form-actions">
                     <button class="btn btn-secondary" onclick="mepSketcherLicensing.closeModal()">Close</button>
+                </div>
+            </div>
+        `);
+    }
+
+    /**
+     * Show login dialog when user tries to purchase without being authenticated
+     */
+    showLoginDialog() {
+        this.createModal('Authentication Required', `
+            <div class="login-required-message" style="text-align: center; padding: 20px;">
+                <p style="margin-bottom: 20px; font-size: 16px;">
+                    Please sign in or create an account to purchase a license.
+                </p>
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <a href="/login.html" class="btn btn-primary" style="text-decoration: none; padding: 12px 24px; background: #007bff; color: white; border-radius: 4px; display: inline-block;">
+                        Sign In
+                    </a>
+                    <a href="/login.html#signup" class="btn btn-secondary" style="text-decoration: none; padding: 12px 24px; background: #6c757d; color: white; border-radius: 4px; display: inline-block;">
+                        Sign Up
+                    </a>
                 </div>
             </div>
         `);

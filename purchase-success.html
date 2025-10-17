@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Purchase Successful - MepSketcher">
+    <title>Purchase Successful - MepSketcher</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .success-container {
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .success-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: scaleIn 0.5s ease-out;
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+        .success-title {
+            font-size: 32px;
+            color: #28a745;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .success-message {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .transaction-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+            border-left: 4px solid #28a745;
+        }
+        .transaction-label {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .transaction-id {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            color: #333;
+            word-break: break-all;
+            font-weight: bold;
+        }
+        .info-box {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+            border-left: 4px solid #007bff;
+            text-align: left;
+        }
+        .info-box ul {
+            margin: 10px 0 0 20px;
+            color: #555;
+        }
+        .info-box li {
+            margin: 8px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            margin: 10px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-icon">✅</div>
+        <h1 class="success-title">Purchase Successful!</h1>
+        <p class="success-message">
+            Thank you for purchasing MepSketcher! Your payment has been processed successfully.
+        </p>
+        
+        <div class="transaction-box">
+            <div class="transaction-label">Transaction ID</div>
+            <div class="transaction-id" id="transactionId">Loading...</div>
+        </div>
+
+        <div class="info-box">
+            <strong>What happens next?</strong>
+            <ul>
+                <li>Your license is being activated automatically</li>
+                <li>You'll receive a confirmation email shortly</li>
+                <li>Your license details are available in your dashboard</li>
+                <li>You can start using MepSketcher right away</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <a href="dashboard.html" class="btn btn-primary">Go to Dashboard</a>
+            <a href="index.html" class="btn btn-secondary">Back to Home</a>
+        </div>
+    </div>
+
+    <script>
+        // Get transaction ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const transactionId = urlParams.get('transaction');
+        
+        const transactionElement = document.getElementById('transactionId');
+        if (transactionId) {
+            transactionElement.textContent = transactionId;
+        } else {
+            transactionElement.textContent = 'N/A';
+        }
+    </script>
+</body>
+</html>
