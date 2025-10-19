@@ -1,12 +1,35 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-// Helper to verify Paddle webhook signature
+// Paddle sends signature in format: ts=timestamp;h1=signature
+// We need to extract and verify it properly
+function extractPaddleSignature(signatureHeader: string | null): {
+  timestamp: string;
+  signature: string;
+} | null {
+  if (!signatureHeader) return null;
+
+  const parts = signatureHeader.split(";");
+  const tsMatch = parts.find((p) => p.startsWith("ts="));
+  const h1Match = parts.find((p) => p.startsWith("h1="));
+
+  if (!tsMatch || !h1Match) return null;
+
+  return {
+    timestamp: tsMatch.substring(3),
+    signature: h1Match.substring(3),
+  };
+}
+
 async function verifyPaddleSignature(
   body: string,
+  timestamp: string,
   signature: string,
   secret: string
 ): Promise<boolean> {
+  // Paddle signature format: ts + : + body
+  const payload = timestamp + ":" + body;
+
   const encoder = new TextEncoder();
   const keyData = encoder.encode(secret);
 
@@ -21,7 +44,7 @@ async function verifyPaddleSignature(
   const signatureData = await crypto.subtle.sign(
     "HMAC",
     key,
-    encoder.encode(body)
+    encoder.encode(payload)
   );
 
   const calculatedSignature = Array.from(new Uint8Array(signatureData))
@@ -40,19 +63,35 @@ Deno.serve(async (req) => {
     const bodyText = await req.text();
 
     // Verify Paddle signature
-    const signature = req.headers.get("paddle-signature");
-    if (!signature) {
-      console.error("No signature provided");
+    // Try both header name variations
+    const signatureHeader =
+      req.headers.get("paddle-signature") ||
+      req.headers.get("Paddle-Signature");
+
+    if (!signatureHeader) {
+      console.error("No Paddle signature header found");
+      console.log(
+        "Available headers:",
+        Object.fromEntries(req.headers.entries())
+      );
       return new Response("Unauthorized", { status: 401 });
+    }
+
+    const signatureData = extractPaddleSignature(signatureHeader);
+    if (!signatureData) {
+      console.error("Invalid signature format:", signatureHeader);
+      return new Response("Invalid signature format", { status: 401 });
     }
 
     const isValid = await verifyPaddleSignature(
       bodyText,
-      signature,
+      signatureData.timestamp,
+      signatureData.signature,
       paddleWebhookSecret
     );
+
     if (!isValid) {
-      console.error("Invalid signature");
+      console.error("Invalid signature verification failed");
       return new Response("Invalid signature", { status: 401 });
     }
 
@@ -72,7 +111,9 @@ Deno.serve(async (req) => {
       } = transactionData;
 
       const quantity = items[0]?.quantity || 1;
-      const userId = custom_data?.userId;
+      const userId = custom_data?.userId || custom_data?.user_id;
+      const organizationIdFromCustomData =
+        custom_data?.organizationId || custom_data?.organization_id;
       const userEmail = custom_data?.email || customer?.email;
 
       if (!userId) {
@@ -84,25 +125,40 @@ Deno.serve(async (req) => {
         `Processing purchase: ${quantity} license(s) for user ${userId}`
       );
 
-      // 1. Check if organization already exists for this user
-      let organizationId: string;
+      // 1. Determine organization ID (from custom_data or lookup)
+      let organizationId: string | null = organizationIdFromCustomData || null;
 
-      const { data: existingMember } = await supabase
-        .from("organization_members")
-        .select("organization_id")
-        .eq("user_id", userId)
-        .single();
+      if (!organizationId) {
+        // No organization ID provided, try to find existing membership
+        console.log(
+          "No organizationId in custom_data, checking for existing membership"
+        );
+        const { data: existingMember } = await supabase
+          .from("organization_members")
+          .select("organization_id")
+          .eq("user_id", userId)
+          .maybeSingle();
 
-      if (existingMember) {
-        organizationId = existingMember.organization_id;
-        console.log("Using existing organization:", organizationId);
+        if (existingMember) {
+          organizationId = existingMember.organization_id;
+          console.log(
+            "Found existing organization from membership:",
+            organizationId
+          );
+        }
       } else {
-        // Create new organization
+        console.log("Using organization from custom_data:", organizationId);
+      }
+
+      // 2. If still no organization, create one
+      if (!organizationId) {
+        console.log("No organization found, creating new organization");
         const { data: newOrg, error: orgError } = await supabase
           .from("organizations")
           .insert({
             name: `${userEmail}'s Organization`,
             owner_id: userId,
+            is_trial: false,
           })
           .select()
           .single();
@@ -114,23 +170,42 @@ Deno.serve(async (req) => {
 
         organizationId = newOrg.id;
         console.log("Created new organization:", organizationId);
+      }
 
-        // Add user as organization owner
+      // 3. CRITICAL: Always ensure user is in organization_members
+      console.log("Checking if user is in organization_members");
+      const { data: membershipCheck } = await supabase
+        .from("organization_members")
+        .select("id, role")
+        .eq("user_id", userId)
+        .eq("organization_id", organizationId)
+        .maybeSingle();
+
+      if (!membershipCheck) {
+        console.log("User not in organization_members, adding as admin");
         const { error: memberError } = await supabase
           .from("organization_members")
           .insert({
             user_id: userId,
             organization_id: organizationId,
-            role: "owner",
+            role: "admin",
           });
 
         if (memberError) {
-          console.error("Error adding organization member:", memberError);
+          console.error(
+            "Error adding user to organization_members:",
+            memberError
+          );
           throw memberError;
         }
+        console.log("Successfully added user to organization_members");
+      } else {
+        console.log(
+          `User already in organization_members with role: ${membershipCheck.role}`
+        );
       }
 
-      // 2. Check if organization_licenses entry already exists
+      // 4. Check if organization_licenses entry already exists
       const { data: existingLicense } = await supabase
         .from("organization_licenses")
         .select("*")
@@ -138,7 +213,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (existingLicense) {
-        // Update existing license entry - add more licenses
+        // Update existing license entry
         const { data: updatedLicense, error: updateError } = await supabase
           .from("organization_licenses")
           .update({
@@ -181,7 +256,7 @@ Deno.serve(async (req) => {
           .insert({
             organization_id: organizationId,
             total_licenses: quantity,
-            used_licenses: 0,
+            used_licenses: 1,
             license_type: "standard",
             paddle_id: transactionId,
             expires_at: new Date(
@@ -197,6 +272,21 @@ Deno.serve(async (req) => {
         }
 
         console.log(`Created license entry with ${quantity} licenses`);
+
+        // Update organization to mark as paid
+        const { error: orgUpdateError } = await supabase
+          .from("organizations")
+          .update({ is_trial: false })
+          .eq("id", organizationId);
+
+        if (orgUpdateError) {
+          console.error(
+            "Error updating organization trial status:",
+            orgUpdateError
+          );
+        } else {
+          console.log("Organization marked as paid (trial ended)");
+        }
 
         return new Response(
           JSON.stringify({

@@ -204,6 +204,28 @@ class MepSketcherLicensing {
 
         console.log('User is authenticated:', user.email);
 
+        // Get user's organization
+        console.log('Fetching user organization...');
+        const { data: organizations, error: orgError } = await window.supabase
+            .from('organizations')
+            .select('id')
+            .eq('owner_id', user.id)
+            .single();
+
+        if (orgError || !organizations) {
+            console.error('Failed to fetch organization:', orgError);
+            this.showError('Could not find your organization. Please contact support.');
+            return;
+        }
+
+        console.log('Found organization:', organizations.id);
+
+        // // TEMPORARY TEST: Try to insert rows directly instead of going through Paddle
+        // console.log('=== TESTING DIRECT DATABASE INSERT ===');
+        // await this.testDirectDatabaseInsert(user.id, organizations.id, user.email);
+        // return;
+
+        // COMMENTED OUT FOR TESTING - Original Paddle checkout flow
         // Validate price ID first
         const priceId = PaddleConfig.products.yearly.id;
         if (!priceId || !priceId.startsWith('pri_')) {
@@ -223,6 +245,7 @@ class MepSketcherLicensing {
         // Prepare custom data with user information for webhook
         const customData = {
             userId: user.id,
+            organizationId: organizations.id,
             email: user.email,
             license_type: 'yearly',
             product: 'mepsketcher',
@@ -259,6 +282,103 @@ class MepSketcherLicensing {
         } catch (error) {
             console.error('Failed to open checkout:', error);
             this.showError('Payment system unavailable. Please try again later.');
+        }
+        //END OF COMMENTED SECTION
+    }
+
+    /**
+     * TEMPORARY TEST FUNCTION: Insert rows directly to test RLS policies
+     */
+    async testDirectDatabaseInsert(userId, organizationId, userEmail) {
+        console.log('Testing direct database insert...');
+        console.log('User ID:', userId);
+        console.log('Organization ID:', organizationId);
+
+        try {
+            // Step 1: Check if user is already in organization_members
+            console.log('Step 1: Checking existing membership...');
+            const { data: existingMember, error: checkError } = await window.supabase
+                .from('organization_members')
+                .select("organization_id")
+                .eq("user_id", userId)
+                .maybeSingle();
+
+            if (checkError) {
+                console.error('Error checking membership:', checkError);
+                this.showError(`Error checking membership: ${checkError.message}`);
+                return;
+            }
+
+            if (existingMember) {
+                console.log('User already in organization_members with role:', existingMember.role);
+            } else {
+                // Step 2: Try to add user to organization_members
+                console.log('Step 2: Adding user to organization_members...');
+                const { data: newMember, error: memberError } = await window.supabase
+                    .from('organization_members')
+                    .insert({
+                        user_id: userId,
+                        organization_id: organizationId,
+                        role: 'admin'
+                    })
+                    .select()
+                    .single();
+
+                if (memberError) {
+                    console.error('ERROR adding to organization_members:', memberError);
+                    this.showError(`Failed to add to organization_members: ${memberError.message}`);
+                    return;
+                } else {
+                    console.log('SUCCESS! Added to organization_members:', newMember);
+                }
+            }
+
+            // Step 3: Check if license already exists
+            console.log('Step 3: Checking existing license...');
+            const { data: existingLicense, error: licenseCheckError } = await window.supabase
+                .from('organization_licenses')
+                .select('*')
+                .eq('organization_id', organizationId)
+                .maybeSingle();
+
+            if (licenseCheckError) {
+                console.error('Error checking license:', licenseCheckError);
+                this.showError(`Error checking license: ${licenseCheckError.message}`);
+                return;
+            }
+
+            if (existingLicense) {
+                console.log('License already exists:', existingLicense);
+                this.showSuccess('Test Complete', 'User is already in organization_members and license already exists!');
+            } else {
+                // Step 4: Try to add license
+                console.log('Step 4: Adding license to organization_licenses...');
+                const { data: newLicense, error: licenseError } = await window.supabase
+                    .from('organization_licenses')
+                    .insert({
+                        organization_id: organizationId,
+                        total_licenses: 1,
+                        used_licenses: 1,
+                        license_type: 'standard',
+                        paddle_id: 'test_' + Date.now(),
+                        expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+                    })
+                    .select()
+                    .single();
+
+                if (licenseError) {
+                    console.error('ERROR adding to organization_licenses:', licenseError);
+                    this.showError(`Failed to add to organization_licenses: ${licenseError.message}`);
+                    return;
+                } else {
+                    console.log('SUCCESS! Added to organization_licenses:', newLicense);
+                    this.showSuccess('Test Complete', 'Successfully added user to organization_members and created license!');
+                }
+            }
+
+        } catch (error) {
+            console.error('Unexpected error:', error);
+            this.showError(`Unexpected error: ${error.message}`);
         }
     }
 

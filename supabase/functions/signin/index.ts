@@ -21,6 +21,13 @@ interface SignInResponse {
     name: string | null;
     emailConfirmed: boolean;
   };
+  organization?: {
+    id: string;
+    name: string;
+    isTrial: boolean;
+    trialExpiresAt: string | null;
+    daysRemaining: number | null;
+  } | null;
   pendingOrganizationsProcessed?: boolean;
   message?: string;
   error?: string;
@@ -184,6 +191,10 @@ Deno.serve(async (req) => {
                   .insert({
                     name: pendingOrg.organization_name,
                     owner_id: userId,
+                    is_trial: true,
+                    trial_expires_at: new Date(
+                      Date.now() + 14 * 24 * 60 * 60 * 1000
+                    ).toISOString(),
                   })
                   .select()
                   .single();
@@ -248,7 +259,39 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 3: Return success response
+    // Step 3: Query organization info to return trial status
+    let organizationInfo = null;
+    if (emailConfirmed) {
+      const { data: orgMember } = await supabaseAdmin
+        .from("organization_members")
+        .select(
+          "organization_id, organizations(id, name, is_trial, trial_expires_at)"
+        )
+        .eq("user_id", userId)
+        .single();
+
+      if (orgMember && orgMember.organizations) {
+        const org = Array.isArray(orgMember.organizations)
+          ? orgMember.organizations[0]
+          : orgMember.organizations;
+
+        organizationInfo = {
+          id: org.id,
+          name: org.name,
+          isTrial: org.is_trial,
+          trialExpiresAt: org.trial_expires_at,
+          daysRemaining:
+            org.is_trial && org.trial_expires_at
+              ? Math.ceil(
+                  (new Date(org.trial_expires_at).getTime() - Date.now()) /
+                    (1000 * 60 * 60 * 24)
+                )
+              : null,
+        };
+      }
+    }
+
+    // Step 4: Return success response
     return new Response(
       JSON.stringify({
         success: true,
@@ -258,6 +301,7 @@ Deno.serve(async (req) => {
           name: userName,
           emailConfirmed: emailConfirmed,
         },
+        organization: organizationInfo,
         pendingOrganizationsProcessed: pendingOrganizationsProcessed,
         message: "Successfully signed in!",
       } as SignInResponse),

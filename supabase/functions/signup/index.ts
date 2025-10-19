@@ -252,6 +252,7 @@ Deno.serve(async (req) => {
         const { error: pendingError } = await supabaseAdmin
           .from("pending_organizations")
           .insert({
+            user_id: userId,
             user_email: email,
             user_name: name,
             organization_name: orgName,
