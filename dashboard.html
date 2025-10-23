@@ -110,6 +110,51 @@
         </div>
     </section>
 
+    <!-- Add Member Modal -->
+    <div id="addMemberModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Team Member</h2>
+                <span class="close">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <form id="addMemberForm">
+                    <div class="form-group">
+                        <label for="memberEmail">Email Address</label>
+                        <input 
+                            type="email" 
+                            id="memberEmail" 
+                            required 
+                            placeholder="colleague@example.com"
+                            autocomplete="email">
+                        <small class="form-text">
+                            If the user doesn't have an account, we'll send them an invitation.
+                        </small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="memberRole">Role</label>
+                        <select id="memberRole">
+                            <option value="member">Member</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <small class="form-text">
+                            Admins can manage members and licenses.
+                        </small>
+                    </div>
+                    
+                    <div id="addMemberMessage" class="message" style="display: none;"></div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelAddMember">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="submitAddMember">Add Member</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
@@ -126,6 +171,6 @@
     <script src="js/supabase-config.local.js"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/dashboard.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
 </body>
 </html>

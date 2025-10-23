@@ -1,6 +1,11 @@
 // Dashboard JavaScript
 // Handles dashboard functionality, license management, and organization management
 
+import { MembersManager } from './members-manager.js';
+
+// Global members manager instance
+let membersManager = null;
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Wait for auth service to initialize
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -23,6 +28,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load licenses
     await loadLicenses();
+
+    // Setup add member modal
+    setupAddMemberModal();
 });
 
 // Load user data
@@ -120,23 +128,39 @@ async function loadOrganizationData() {
             console.error('Error loading owned organizations:', ownedError);
         }
 
-        // Get organizations where user is a member
+        // Get organizations where user is a member (just get the IDs and roles)
         const { data: memberships, error: membershipsError } = await authService.supabase
             .from('organization_members')
-            .select(`
-                organization_id,
-                role,
-                organizations (
-                    id,
-                    name,
-                    owner_id,
-                    created_at
-                )
-            `)
+            .select('organization_id, role')
             .eq('user_id', user.id);
 
         if (membershipsError) {
             console.error('Error loading memberships:', membershipsError);
+        }
+
+        // Get the full organization details for memberships
+        let memberOrgs = [];
+        if (memberships && memberships.length > 0) {
+            const orgIds = memberships.map(m => m.organization_id);
+            
+            const { data: orgs, error: orgsError } = await authService.supabase
+                .from('organizations')
+                .select('*')
+                .in('id', orgIds);
+
+            if (orgsError) {
+                console.error('Error loading member organizations:', orgsError);
+            } else {
+                // Map the organizations with their roles
+                memberOrgs = orgs ? orgs.map(org => {
+                    const membership = memberships.find(m => m.organization_id === org.id);
+                    return {
+                        ...org,
+                        role: membership?.role || 'member',
+                        isOwner: false
+                    };
+                }) : [];
+            }
         }
 
         // Combine organizations
@@ -146,22 +170,22 @@ async function loadOrganizationData() {
                 role: 'admin', 
                 isOwner: true 
             })),
-            ...(memberships || [])
-                .filter(m => m.organizations)
-                .map(m => ({ 
-                    ...m.organizations, 
-                    role: m.role, 
-                    isOwner: false 
-                }))
+            ...memberOrgs
         ];
 
-        // Remove duplicates
+        // Remove duplicates (in case user is both owner and member)
         const uniqueOrgs = Array.from(
             new Map(allOrgs.map(org => [org.id, org])).values()
         );
 
         if (uniqueOrgs.length > 0) {
             displayOrganizationInfo(uniqueOrgs[0]); // Show first organization
+        } else {
+            // Optionally show a message in the UI
+            const container = document.getElementById('organizationContainer');
+            if (container) {
+                container.innerHTML = '<div class="empty-state"><p>No organization found. Contact an administrator to be added to an organization.</p></div>';
+            }
         }
     } catch (error) {
         console.error('Error in loadOrganizationData:', error);
@@ -180,57 +204,114 @@ async function displayOrganizationInfo(org) {
     orgDiv.className = 'organization-info';
 
     let membersHtml = '';
-    if (isAdmin) {
-        // Load organization members
-        const { data: members, error } = await authService.supabase
-            .from('organization_members')
-            .select(`
-                user_id,
-                role,
-                created_at,
-                user_profiles (
-                    name,
-                    email
-                )
-            `)
-            .eq('organization_id', org.id);
+    let licenseInfoHtml = '';
+    
+    // Load organization members (for both admin and non-admin users)
+    const { data: members, error: membersError } = await authService.supabase
+        .from('organization_members')
+        .select('user_id, email, role, created_at')
+        .eq('organization_id', org.id);
 
-        if (!error && members) {
+    if (membersError) {
+        console.error('Error loading members:', membersError);
+    }
+    
+    if (isAdmin) {
+        // Initialize members manager for this organization
+        membersManager = new MembersManager(authService.supabase, org.id);
+        
+        // Load license availability info
+        try {
+            const licenseInfo = await membersManager.checkAvailableLicenses();
+            
+            if (licenseInfo && licenseInfo.success) {
+                const canAddMember = licenseInfo.can_add_member;
+                const availableCount = licenseInfo.available_licenses || 0;
+                
+                licenseInfoHtml = `
+                    <div class="license-info-banner ${canAddMember ? 'success' : 'warning'}">
+                        ${canAddMember 
+                            ? `✓ ${availableCount} license${availableCount !== 1 ? 's' : ''} available for new members`
+                            : `⚠ ${licenseInfo.message || 'No licenses available'}`
+                        }
+                    </div>
+                `;
+            } else if (licenseInfo && !licenseInfo.success) {
+                console.warn('License check returned error:', licenseInfo.error);
+                // Don't show banner if there's an error, just log it
+            }
+        } catch (error) {
+            console.error('Error checking license availability:', error);
+            // Continue without license banner - don't break the UI
+        }
+
+        if (members && members.length > 0) {
             membersHtml = `
                 <div class="org-members-section">
-                    <div class="add-member-section">
-                        <h4>Add New Member</h4>
-                        <div class="form-inline">
-                            <input type="email" 
-                                   id="newMemberEmail" 
-                                   placeholder="Enter member email" 
-                                   class="form-input">
-                            <select id="newMemberRole" class="form-input">
-                                <option value="member">Member</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                            <button class="btn btn-primary btn-small" id="addMemberBtn" data-org-id="${org.id}">
-                                Add Member
-                            </button>
-                        </div>
+                    ${licenseInfoHtml}
+                    <div class="members-header">
+                        <h3>Organization Members (${members.length})</h3>
+                        <button class="btn btn-primary btn-small" id="addMemberBtn">
+                            + Add Member
+                        </button>
                     </div>
-                    <h3>Organization Members (${members.length})</h3>
                     <div class="org-members-list">
-                        ${members.map(member => `
-                            <div class="org-member-item">
-                                <div class="member-info">
-                                    <span class="member-name">${member.user_profiles?.name || member.user_profiles?.email || 'Unknown'}</span>
-                                    <span class="member-role ${member.role}">${member.role}</span>
+                        ${members.map(member => {
+                            const displayEmail = member.email || 'Unknown';
+                            const displayName = displayEmail.split('@')[0];
+                            const isCurrentUser = member.user_id === user.id;
+                            
+                            return `
+                                <div class="org-member-item">
+                                    <div class="member-info">
+                                        <div class="member-details">
+                                            <span class="member-name">${displayName}</span>
+                                            <span class="member-email">${displayEmail}</span>
+                                        </div>
+                                        <span class="member-role ${member.role}">${member.role}</span>
+                                    </div>
+                                    ${!isCurrentUser ? `
+                                        <button class="btn btn-danger btn-small remove-member-btn" 
+                                                data-user-id="${member.user_id}" 
+                                                data-member-name="${displayName}"
+                                                data-org-id="${org.id}">
+                                            Remove
+                                        </button>
+                                    ` : '<span class="member-you-badge">You</span>'}
                                 </div>
-                                ${member.user_id !== user.id ? `
-                                    <button class="btn btn-danger btn-small remove-member-btn" 
-                                            data-user-id="${member.user_id}" 
-                                            data-org-id="${org.id}">
-                                        Remove
-                                    </button>
-                                ` : ''}
-                            </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    } else {
+        // Non-admin view - show members list without management controls
+        if (members && members.length > 0) {
+            membersHtml = `
+                <div class="org-members-section">
+                    <div class="members-header">
+                        <h3>Organization Members (${members.length})</h3>
+                    </div>
+                    <div class="org-members-list">
+                        ${members.map(member => {
+                            const displayEmail = member.email || 'Unknown';
+                            const displayName = displayEmail.split('@')[0];
+                            const isCurrentUser = member.user_id === user.id;
+                            
+                            return `
+                                <div class="org-member-item">
+                                    <div class="member-info">
+                                        <div class="member-details">
+                                            <span class="member-name">${displayName}</span>
+                                            <span class="member-email">${displayEmail}</span>
+                                        </div>
+                                        <span class="member-role ${member.role}">${member.role}</span>
+                                    </div>
+                                    ${isCurrentUser ? '<span class="member-you-badge">You</span>' : ''}
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
                 </div>
             `;
@@ -251,24 +332,163 @@ async function displayOrganizationInfo(org) {
 
     // Add event listeners for member management
     if (isAdmin) {
-        // Remove member buttons
-        document.querySelectorAll('.remove-member-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                handleRemoveMember(btn.dataset.userId, btn.dataset.orgId);
-            });
-        });
-
         // Add member button
         const addMemberBtn = document.getElementById('addMemberBtn');
         if (addMemberBtn) {
-            addMemberBtn.addEventListener('click', () => {
-                handleAddMember(addMemberBtn.dataset.orgId);
+            addMemberBtn.addEventListener('click', async () => {
+                await openAddMemberModal();
             });
         }
+        
+        // Remove member buttons
+        document.querySelectorAll('.remove-member-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                handleRemoveMember(btn.dataset.userId, btn.dataset.memberName, btn.dataset.orgId);
+            });
+        });
     }
 }
 
-// Handle adding a member to organization
+// Setup Add Member Modal
+function setupAddMemberModal() {
+    const modal = document.getElementById('addMemberModal');
+    const closeBtn = modal.querySelector('.close');
+    const cancelBtn = document.getElementById('cancelAddMember');
+    const form = document.getElementById('addMemberForm');
+
+    // Close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            closeAddMemberModal();
+        });
+    }
+
+    // Cancel button
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            closeAddMemberModal();
+        });
+    }
+
+    // Click outside to close
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeAddMemberModal();
+        }
+    });
+
+    // Form submit
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handleAddMemberSubmit();
+        });
+    }
+}
+
+// Open Add Member Modal
+async function openAddMemberModal() {
+    if (!membersManager) {
+        showAddMemberMessage('Error: Member manager not initialized', 'error');
+        return;
+    }
+
+    try {
+        // Check license availability before opening modal
+        const licenseInfo = await membersManager.checkAvailableLicenses();
+        
+        if (!licenseInfo.success) {
+            alert(licenseInfo.error || 'Failed to check license availability');
+            return;
+        }
+
+        if (!licenseInfo.can_add_member) {
+            alert(licenseInfo.message || 'Cannot add members at this time. Please check your license status.');
+            return;
+        }
+
+        // Open modal
+        const modal = document.getElementById('addMemberModal');
+        modal.style.display = 'flex';
+        
+        // Focus email input
+        document.getElementById('memberEmail').focus();
+    } catch (error) {
+        console.error('Error opening add member modal:', error);
+        alert('Failed to check license availability. Please try again.');
+    }
+}
+
+// Close Add Member Modal
+function closeAddMemberModal() {
+    const modal = document.getElementById('addMemberModal');
+    modal.style.display = 'none';
+    
+    // Reset form
+    document.getElementById('addMemberForm').reset();
+    
+    // Hide message
+    const messageDiv = document.getElementById('addMemberMessage');
+    messageDiv.style.display = 'none';
+    messageDiv.className = 'message';
+}
+
+// Handle Add Member Form Submit
+async function handleAddMemberSubmit() {
+    const emailInput = document.getElementById('memberEmail');
+    const roleSelect = document.getElementById('memberRole');
+    const submitBtn = document.getElementById('submitAddMember');
+    
+    const email = emailInput.value.trim();
+    const role = roleSelect.value;
+
+    if (!email) {
+        showAddMemberMessage('Please enter an email address', 'error');
+        return;
+    }
+
+    if (!membersManager) {
+        showAddMemberMessage('Error: Member manager not initialized', 'error');
+        return;
+    }
+
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Adding...';
+
+    try {
+        const result = await membersManager.inviteMember(email, role);
+        
+        if (result.success) {
+            showAddMemberMessage(result.message, 'success');
+            
+            // Reload organization data after 1.5 seconds
+            setTimeout(async () => {
+                await loadOrganizationData();
+                await loadLicenses();
+                closeAddMemberModal();
+            }, 1500);
+        } else {
+            showAddMemberMessage(result.message || 'Failed to add member', 'error');
+        }
+    } catch (error) {
+        console.error('Error adding member:', error);
+        showAddMemberMessage(error.message || 'An error occurred while adding the member', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Add Member';
+    }
+}
+
+// Show message in add member modal
+function showAddMemberMessage(text, type) {
+    const messageDiv = document.getElementById('addMemberMessage');
+    messageDiv.textContent = text;
+    messageDiv.className = `message ${type}`;
+    messageDiv.style.display = 'block';
+}
+
+// Handle adding a member to organization (LEGACY - replaced by modal)
 async function handleAddMember(orgId) {
     const emailInput = document.getElementById('newMemberEmail');
     const roleSelect = document.getElementById('newMemberRole');
@@ -281,37 +501,37 @@ async function handleAddMember(orgId) {
         return;
     }
 
-    // Find user by email in user_profiles
-    const { data: profiles, error: profileError } = await authService.supabase
+    // Simple query: Find user by email in user_profiles
+    const { data: profile, error: profileError } = await authService.supabase
         .from('user_profiles')
-        .select('user_id, email')
+        .select('id')
         .eq('email', email)
-        .single();
+        .maybeSingle();
 
-    if (profileError || !profiles) {
+    if (profileError || !profile) {
         alert('User not found. Make sure they have registered an account.');
         return;
     }
 
-    // Check if already a member
+    // Simple query: Check if already a member
     const { data: existing } = await authService.supabase
         .from('organization_members')
-        .select('*')
+        .select('user_id')
         .eq('organization_id', orgId)
-        .eq('user_id', profiles.user_id)
-        .single();
+        .eq('user_id', profile.id)
+        .maybeSingle();
 
     if (existing) {
         alert('This user is already a member of the organization');
         return;
     }
 
-    // Add member
+    // Simple insert: Add member
     const { error: insertError } = await authService.supabase
         .from('organization_members')
         .insert({
             organization_id: orgId,
-            user_id: profiles.user_id,
+            user_id: profile.id,
             role: role,
             created_at: new Date().toISOString()
         });
@@ -327,22 +547,25 @@ async function handleAddMember(orgId) {
 }
 
 // Handle removing a member from organization
-async function handleRemoveMember(userId, orgId) {
-    const confirmed = confirm('Are you sure you want to remove this member?');
+async function handleRemoveMember(userId, memberName, orgId) {
+    const confirmed = confirm(`Are you sure you want to remove ${memberName} from the organization?\n\nThey will lose access and their license will be freed.`);
     if (!confirmed) return;
 
-    const { error } = await authService.supabase
-        .from('organization_members')
-        .delete()
-        .eq('organization_id', orgId)
-        .eq('user_id', userId);
+    if (!membersManager) {
+        alert('Error: Member manager not initialized');
+        return;
+    }
 
-    if (error) {
+    try {
+        await membersManager.removeMember(userId);
+        alert(`${memberName} has been removed from the organization`);
+        
+        // Reload data
+        await loadOrganizationData();
+        await loadLicenses();
+    } catch (error) {
+        console.error('Error removing member:', error);
         alert(`Error removing member: ${error.message}`);
-        console.error('Remove member error:', error);
-    } else {
-        alert('Member removed successfully!');
-        await loadOrganizationData(); // Reload organization data
     }
 }
 
@@ -352,24 +575,26 @@ async function loadLicenses() {
         const user = authService.getCurrentUser();
         if (!user) return;
 
-        // Get user's organizations
+        // Simple query: Get user's organizations
         const { data: userOrgs, error: orgsError } = await authService.supabase
             .from('organizations')
-            .select('*')
+            .select('id, name')
             .eq('owner_id', user.id);
 
         if (orgsError) {
             console.error('Error loading organizations:', orgsError);
+            return;
         }
 
-        // Also get organizations where user is a member
+        // Simple query: Get organizations where user is a member
         const { data: memberships, error: membershipsError } = await authService.supabase
             .from('organization_members')
-            .select('organization_id, role')
+            .select('organization_id')
             .eq('user_id', user.id);
 
         if (membershipsError) {
             console.error('Error loading memberships:', membershipsError);
+            return;
         }
 
         // Combine organization IDs
@@ -389,10 +614,10 @@ async function loadLicenses() {
             return;
         }
 
-        // Get licenses for all user's organizations
+        // Simple query: Get licenses for all user's organizations
         const { data: licenses, error: licensesError } = await authService.supabase
             .from('organization_licenses')
-            .select('*')
+            .select('id, organization_id, total_licenses, used_licenses, license_type, expires_at, created_at')
             .in('organization_id', uniqueOrgIds);
 
         if (licensesError) {
