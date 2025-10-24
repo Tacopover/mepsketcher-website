@@ -206,6 +206,10 @@ async function displayOrganizationInfo(org) {
     let membersHtml = '';
     let licenseInfoHtml = '';
     
+    // Initialize members manager for ALL users (admin and non-admin)
+    // This ensures JWT claims are set for everyone
+    membersManager = new MembersManager(authService.supabase, org.id);
+    
     // Load organization members (for both admin and non-admin users)
     const { data: members, error: membersError } = await authService.supabase
         .from('organization_members')
@@ -217,8 +221,6 @@ async function displayOrganizationInfo(org) {
     }
     
     if (isAdmin) {
-        // Initialize members manager for this organization
-        membersManager = new MembersManager(authService.supabase, org.id);
         
         // Load license availability info
         try {
@@ -287,6 +289,13 @@ async function displayOrganizationInfo(org) {
         }
     } else {
         // Non-admin view - show members list without management controls
+        // Ensure JWT claims are set for non-admin users too
+        try {
+            await membersManager._ensureClaimsOnce();
+        } catch (error) {
+            console.error('Error ensuring JWT claims for non-admin user:', error);
+        }
+        
         if (members && members.length > 0) {
             membersHtml = `
                 <div class="org-members-section">
@@ -575,7 +584,7 @@ async function loadLicenses() {
         const user = authService.getCurrentUser();
         if (!user) return;
 
-        // Simple query: Get user's organizations
+        // Simple query: Get user's organizations (as owner)
         const { data: userOrgs, error: orgsError } = await authService.supabase
             .from('organizations')
             .select('id, name')
@@ -586,66 +595,110 @@ async function loadLicenses() {
             return;
         }
 
-        // Simple query: Get organizations where user is a member
-        const { data: memberships, error: membershipsError } = await authService.supabase
-            .from('organization_members')
-            .select('organization_id')
-            .eq('user_id', user.id);
+        // Check if user is admin (organization owner)
+        const isAdmin = userOrgs && userOrgs.length > 0;
 
-        if (membershipsError) {
-            console.error('Error loading memberships:', membershipsError);
-            return;
+        if (isAdmin) {
+            // Admin view - show full license management
+            await loadAdminLicenses(user, userOrgs);
+        } else {
+            // Member view - show only personal license status
+            await loadMemberLicenseStatus(user);
         }
-
-        // Combine organization IDs
-        const orgIds = [
-            ...(userOrgs || []).map(org => org.id),
-            ...(memberships || []).map(m => m.organization_id)
-        ];
-
-        // Remove duplicates
-        const uniqueOrgIds = [...new Set(orgIds)];
-
-        if (uniqueOrgIds.length === 0) {
-            // No organizations - show empty state
-            document.getElementById('activeLicenses').textContent = '0';
-            document.getElementById('totalLicenses').textContent = '0';
-            document.getElementById('availableLicenses').textContent = '0';
-            return;
-        }
-
-        // Simple query: Get licenses for all user's organizations
-        const { data: licenses, error: licensesError } = await authService.supabase
-            .from('organization_licenses')
-            .select('id, organization_id, total_licenses, used_licenses, license_type, expires_at, created_at')
-            .in('organization_id', uniqueOrgIds);
-
-        if (licensesError) {
-            console.error('Error loading licenses:', licensesError);
-            return;
-        }
-
-        // Calculate totals
-        const totalLicenses = licenses?.reduce((sum, l) => sum + (l.total_licenses || 0), 0) || 0;
-        const usedLicenses = licenses?.reduce((sum, l) => sum + (l.used_licenses || 0), 0) || 0;
-        const availableLicenses = totalLicenses - usedLicenses;
-        const activeLicenses = licenses?.filter(l => 
-            new Date(l.expires_at) > new Date()
-        ).length || 0;
-        
-        document.getElementById('activeLicenses').textContent = activeLicenses;
-        document.getElementById('totalLicenses').textContent = totalLicenses;
-        document.getElementById('availableLicenses').textContent = availableLicenses;
-
-        // Display licenses
-        displayLicenses(licenses, userOrgs);
     } catch (error) {
         console.error('Error in loadLicenses:', error);
     }
 }
 
-// Display licenses
-function displayLicenses(licenses, organizations) {
+// Load full license information for admin users
+async function loadAdminLicenses(user, userOrgs) {
+    // Simple query: Get organizations where user is a member
+    const { data: memberships, error: membershipsError } = await authService.supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id);
+
+    if (membershipsError) {
+        console.error('Error loading memberships:', membershipsError);
+        return;
+    }
+
+    // Combine organization IDs
+    const orgIds = [
+        ...(userOrgs || []).map(org => org.id),
+        ...(memberships || []).map(m => m.organization_id)
+    ];
+
+    // Remove duplicates
+    const uniqueOrgIds = [...new Set(orgIds)];
+
+    if (uniqueOrgIds.length === 0) {
+        // No organizations - show empty state
+        return;
+    }
+
+    // Simple query: Get licenses for all user's organizations
+    const { data: licenses, error: licensesError } = await authService.supabase
+        .from('organization_licenses')
+        .select('id, organization_id, total_licenses, used_licenses, license_type, expires_at, created_at')
+        .in('organization_id', uniqueOrgIds);
+
+    if (licensesError) {
+        console.error('Error loading licenses:', licensesError);
+        return;
+    }
+
+    // Calculate totals (for potential future use)
+    const totalLicenses = licenses?.reduce((sum, l) => sum + (l.total_licenses || 0), 0) || 0;
+    const usedLicenses = licenses?.reduce((sum, l) => sum + (l.used_licenses || 0), 0) || 0;
+    const availableLicenses = totalLicenses - usedLicenses;
+    const activeLicenses = licenses?.filter(l => 
+        new Date(l.expires_at) > new Date()
+    ).length || 0;
+
+    // Display licenses with admin controls
+    displayLicenses(licenses, userOrgs, true);
+}
+
+// Load personal license status for non-admin members
+async function loadMemberLicenseStatus(user) {
+    // Get user's membership with license status
+    const { data: membership, error: memberError } = await authService.supabase
+        .from('organization_members')
+        .select('organization_id, has_license, role')
+        .eq('user_id', user.id)
+        .single();
+
+    if (memberError) {
+        console.error('Error loading member license status:', memberError);
+        // Show no license state
+        displayMemberLicenseStatus(null, null);
+        return;
+    }
+
+    if (!membership) {
+        // No membership found
+        displayMemberLicenseStatus(null, null);
+        return;
+    }
+
+    // Get organization license details
+    const { data: orgLicense, error: licenseError } = await authService.supabase
+        .from('organization_licenses')
+        .select('license_type, expires_at')
+        .eq('organization_id', membership.organization_id)
+        .single();
+
+    if (licenseError) {
+        console.error('Error loading organization license:', licenseError);
+    }
+
+    // Display member license card
+    displayMemberLicenseStatus(membership, orgLicense);
+}
+
+// Display licenses (Admin view)
+function displayLicenses(licenses, organizations, isAdmin = true) {
     const container = document.getElementById('licensesContainer');
     
     if (!licenses || licenses.length === 0) {
@@ -699,13 +752,73 @@ function displayLicenses(licenses, organizations) {
         const org = organizations?.find(o => o.id === license.organization_id);
         const orgName = org?.name || 'Unknown Organization';
         
-        const licenseCard = createLicenseCard(license, orgName);
+        const licenseCard = createLicenseCard(license, orgName, isAdmin);
         container.appendChild(licenseCard);
     });
 }
 
+// Display member license status (Non-admin view)
+function displayMemberLicenseStatus(membership, orgLicense) {
+    const container = document.getElementById('licensesContainer');
+    
+    if (!membership || !membership.has_license) {
+        // No license assigned
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🔒</div>
+                <h3>No License Assigned</h3>
+                <p>You don't currently have a license assigned to your account.</p>
+                <p style="margin-top: 1rem; color: #666;">Contact your organization administrator to request a license.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const isActive = orgLicense && new Date(orgLicense.expires_at) > new Date();
+    const statusClass = isActive ? 'active' : 'expired';
+    const statusText = isActive ? 'Active' : 'Expired';
+    
+    const expiryDate = orgLicense ? new Date(orgLicense.expires_at) : null;
+    const formattedExpiry = expiryDate ? expiryDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    }) : 'Unknown';
+
+    container.innerHTML = `
+        <div class="license-info member-license">
+            <div class="license-card-header">
+                <div>
+                    <h3 class="license-org-name">Your License</h3>
+                    <span class="license-type-badge">${(orgLicense?.license_type || 'standard').toUpperCase()}</span>
+                </div>
+                <span class="license-status-badge ${statusClass}">${statusText}</span>
+            </div>
+            <div class="license-member-details">
+                <div class="license-detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value ${statusClass}">${isActive ? '✓ Licensed' : '⚠ License Expired'}</span>
+                </div>
+                <div class="license-detail-row">
+                    <span class="detail-label">License Type:</span>
+                    <span class="detail-value">${orgLicense?.license_type || 'Standard'}</span>
+                </div>
+                <div class="license-detail-row">
+                    <span class="detail-label">Expires:</span>
+                    <span class="detail-value">${formattedExpiry}</span>
+                </div>
+                ${!isActive ? `
+                    <div class="license-warning">
+                        <p>⚠ Your license has expired. Please contact your administrator to renew.</p>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
 // Create license card HTML
-function createLicenseCard(license, orgName) {
+function createLicenseCard(license, orgName, isAdmin = true) {
     const card = document.createElement('div');
     card.className = 'license-info';
 
@@ -748,33 +861,37 @@ function createLicenseCard(license, orgName) {
                 <span class="stat-value">${formattedExpiry}</span>
             </div>
         </div>
-        <div class="license-actions-section">
-            <div class="purchase-licenses-section">
-                <p class="purchase-text">Purchase additional licenses</p>
-                <button class="btn btn-primary btn-small buy-licenses-btn" 
-                        data-license-id="${license.id}">
-                    Buy Now
-                </button>
+        ${isAdmin ? `
+            <div class="license-actions-section">
+                <div class="purchase-licenses-section">
+                    <p class="purchase-text">Purchase additional licenses</p>
+                    <button class="btn btn-primary btn-small buy-licenses-btn" 
+                            data-license-id="${license.id}">
+                        Buy Now
+                    </button>
+                </div>
+                <div class="license-actions-buttons">
+                    ${!isActive ? '<button class="btn btn-success btn-small renew-btn">Renew License (+1 year)</button>' : ''}
+                </div>
             </div>
-            <div class="license-actions-buttons">
-                ${!isActive ? '<button class="btn btn-success btn-small renew-btn">Renew License (+1 year)</button>' : ''}
-            </div>
-        </div>
+        ` : ''}
     `;
 
-    // Add event listeners
-    const buyBtn = card.querySelector('.buy-licenses-btn');
-    if (buyBtn) {
-        buyBtn.addEventListener('click', () => {
-            handleBuyMoreLicenses(license);
-        });
-    }
+    // Add event listeners only for admin
+    if (isAdmin) {
+        const buyBtn = card.querySelector('.buy-licenses-btn');
+        if (buyBtn) {
+            buyBtn.addEventListener('click', () => {
+                handleBuyMoreLicenses(license);
+            });
+        }
 
-    const renewBtn = card.querySelector('.renew-btn');
-    if (renewBtn) {
-        renewBtn.addEventListener('click', () => {
-            handleRenewLicense(license);
-        });
+        const renewBtn = card.querySelector('.renew-btn');
+        if (renewBtn) {
+            renewBtn.addEventListener('click', () => {
+                handleRenewLicense(license);
+            });
+        }
     }
 
     return card;

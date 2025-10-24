@@ -1329,3 +1329,81 @@ h3 {
         width: 100%;
     }
 }
+
+/* ==========================================
+   Member License View Styles
+   ========================================== */
+
+.license-info.member-license {
+    background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);
+    border: 2px solid var(--border-color);
+}
+
+.license-member-details {
+    padding: 1.5rem;
+}
+
+.license-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.license-detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.detail-value {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.detail-value.active {
+    color: #059669;
+    font-weight: 600;
+}
+
+.detail-value.expired {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.license-warning {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #fef3c7;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+}
+
+.license-warning p {
+    margin: 0;
+    color: #92400e;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .license-detail-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .detail-label {
+        font-size: 0.8rem;
+    }
+    
+    .detail-value {
+        font-size: 0.9rem;
+    }
+}

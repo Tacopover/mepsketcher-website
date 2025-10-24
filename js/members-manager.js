@@ -1,10 +1,35 @@
 // Member Management Module
 // Handles inviting, adding, removing, and managing organization members
 
+import { JWTClaimsHelper } from './jwt-claims-helper.js';
+
 export class MembersManager {
   constructor(supabase, organizationId) {
     this.supabase = supabase;
     this.organizationId = organizationId;
+    this.jwtHelper = new JWTClaimsHelper(supabase);
+    this._claimsEnsured = false;
+  }
+
+  /**
+   * Ensure JWT claims are set (call once per session)
+   * @private
+   */
+  async _ensureClaimsOnce() {
+    if (this._claimsEnsured) {
+      return; // Already checked this session
+    }
+
+    const result = await this.jwtHelper.ensureClaimsPresent();
+    
+    if (!result.success) {
+      console.warn('Failed to ensure JWT claims:', result.error);
+      // Don't throw - operations might still work with explicit filtering
+    } else if (result.refreshed) {
+      console.log('Session refreshed with new JWT claims');
+    }
+
+    this._claimsEnsured = true;
   }
 
   /**
@@ -12,22 +37,10 @@ export class MembersManager {
    * @returns {Promise<Object>} License availability info
    */
   async checkAvailableLicenses() {
-    // try {
-    //   const { data, error } = await this.supabase.rpc('get_available_licenses', {
-    //     org_id: this.organizationId
-    //   });
-
-    //   if (error) {
-    //     console.error('Error checking licenses:', error);
-    //     throw error;
-    //   }
-
-    //   return data;
-    // } catch (error) {
-      // console.error('Error in checkAvailableLicenses:', error);
-      // Fallback: manually check licenses if RPC fails
-      return await this.checkAvailableLicensesFallback();
-    // }
+    await this._ensureClaimsOnce();
+    
+    // Fallback: manually check licenses if RPC fails
+    return await this.checkAvailableLicensesFallback();
   }
 
   /**
@@ -133,6 +146,8 @@ export class MembersManager {
    * @returns {Promise<Object>} Result with success status and action taken
    */
   async inviteMember(email, role = 'member') {
+    await this._ensureClaimsOnce();
+    
     // 1. Check available licenses
     const licenses = await this.checkAvailableLicenses();
     
@@ -168,6 +183,7 @@ export class MembersManager {
 
   /**
    * Add an existing user to the organization as an active member
+   * Database trigger will automatically set their JWT claims
    * @private
    */
   async addExistingUserToOrg(userId, email, role) {
@@ -212,11 +228,11 @@ export class MembersManager {
         success: true, 
         action: 'reactivated', 
         email,
-        message: `${email} has been reactivated as a member`
+        message: `${email} has been reactivated. They should refresh their page to update access.`
       };
     }
 
-    // Add new active member
+    // Add new active member - trigger will set JWT claims automatically
     const { error: insertError } = await this.supabase
       .from('organization_members')
       .insert({
@@ -239,7 +255,7 @@ export class MembersManager {
       success: true, 
       action: 'added', 
       email,
-      message: `${email} has been added to the organization`
+      message: `${email} has been added to the organization. They should refresh their page to update access.`
     };
   }
 
@@ -303,6 +319,7 @@ export class MembersManager {
 
   /**
    * Accept a pending invitation (called after signup)
+   * Database trigger will automatically set JWT claims when status becomes 'active'
    * @param {string} userId - The user ID of the newly signed up user
    * @param {string} email - The email address used for signup
    */
@@ -325,7 +342,7 @@ export class MembersManager {
       throw new Error('No pending invitation found for this email');
     }
 
-    // Update invitation to active member
+    // Update invitation to active member - trigger will set JWT claims automatically
     const { error: updateError } = await this.supabase
       .from('organization_members')
       .update({
@@ -342,6 +359,9 @@ export class MembersManager {
 
     // NOW increment used_licenses (user activated their license)
     await this.incrementUsedLicenses();
+
+    // Refresh session to get new JWT with claims
+    await this.supabase.auth.refreshSession();
 
     return { success: true };
   }
@@ -404,11 +424,23 @@ export class MembersManager {
    * @private
    */
   async incrementUsedLicenses() {
+    // Get current license count
+    const { data: license, error: fetchError } = await this.supabase
+      .from('organization_licenses')
+      .select('used_licenses')
+      .eq('organization_id', this.organizationId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching license for increment:', fetchError);
+      throw fetchError;
+    }
+
+    // Increment by 1
     const { error } = await this.supabase
       .from('organization_licenses')
       .update({ 
-        used_licenses: this.supabase.sql`used_licenses + 1`,
-        updated_at: new Date().toISOString()
+        used_licenses: license.used_licenses + 1
       })
       .eq('organization_id', this.organizationId);
 
@@ -423,11 +455,25 @@ export class MembersManager {
    * @private
    */
   async decrementUsedLicenses() {
+    // Get current license count
+    const { data: license, error: fetchError } = await this.supabase
+      .from('organization_licenses')
+      .select('used_licenses')
+      .eq('organization_id', this.organizationId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching license for decrement:', fetchError);
+      throw fetchError;
+    }
+
+    // Decrement by 1, but never go below 1
+    const newCount = Math.max(license.used_licenses - 1, 1);
+    
     const { error } = await this.supabase
       .from('organization_licenses')
       .update({ 
-        used_licenses: this.supabase.sql`GREATEST(used_licenses - 1, 1)`,
-        updated_at: new Date().toISOString()
+        used_licenses: newCount
       })
       .eq('organization_id', this.organizationId);
 

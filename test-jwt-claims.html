@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JWT Claims Test Page</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #555;
+      margin-top: 30px;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f9f9f9;
+      border-left: 4px solid #2196F3;
+      border-radius: 4px;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      margin: 5px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    button.secondary {
+      background: #2196F3;
+    }
+    button.secondary:hover {
+      background: #0b7dda;
+    }
+    #output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+      max-height: 500px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+    .success {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    .error {
+      color: #f44336;
+      font-weight: bold;
+    }
+    .warning {
+      color: #ff9800;
+      font-weight: bold;
+    }
+    .info {
+      color: #2196F3;
+      font-weight: bold;
+    }
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    .status.success {
+      background: #e8f5e9;
+      border: 1px solid #4CAF50;
+      color: #2e7d32;
+    }
+    .status.error {
+      background: #ffebee;
+      border: 1px solid #f44336;
+      color: #c62828;
+    }
+    .status.warning {
+      background: #fff3e0;
+      border: 1px solid #ff9800;
+      color: #e65100;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 JWT Claims Test Page</h1>
+    <p>Use this page to test if JWT claims are being set correctly for organization context.</p>
+
+    <div class="test-section">
+      <h2>Quick Tests</h2>
+      <button onclick="testClaimsPresent()">1. Check Claims Present</button>
+      <button onclick="testJWTStructure()">2. Show JWT Structure</button>
+      <button onclick="testEnsureClaims()">3. Ensure Claims (Refresh if needed)</button>
+      <button onclick="testDatabaseMembership()">4. Check Database Membership</button>
+      <button onclick="testEdgeFunction()">5. Call Edge Function</button>
+    </div>
+
+    <div class="test-section">
+      <h2>Comprehensive Test</h2>
+      <button onclick="runAllTests()" style="background: #9C27B0;">▶ Run All Tests</button>
+      <button onclick="clearOutput()" class="secondary">Clear Output</button>
+    </div>
+
+    <div class="test-section">
+      <h2>Manual Actions</h2>
+      <button onclick="refreshSession()" class="secondary">Refresh Session</button>
+      <button onclick="showCurrentSession()" class="secondary">Show Current Session</button>
+    </div>
+
+    <div id="output"></div>
+  </div>
+
+  <!-- Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Your Supabase Config -->
+  <script type="module">
+    import { SUPABASE_URL, SUPABASE_ANON_KEY } from './js/supabase-config.js';
+    
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Make available globally
+    window.supabase = supabaseClient;
+  </script>
+
+  <script type="module">
+    import { JWTClaimsHelper } from './js/jwt-claims-helper.js';
+    
+    const helper = new JWTClaimsHelper(window.supabase);
+    
+    function log(message, type = 'info') {
+      const output = document.getElementById('output');
+      const span = document.createElement('div');
+      
+      let prefix = '';
+      if (type === 'success') prefix = '✅ ';
+      if (type === 'error') prefix = '❌ ';
+      if (type === 'warning') prefix = '⚠️  ';
+      if (type === 'info') prefix = 'ℹ️  ';
+      
+      span.innerHTML = `<span class="${type}">${prefix}${message}</span>`;
+      output.appendChild(span);
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function logSection(title) {
+      const output = document.getElementById('output');
+      const div = document.createElement('div');
+      div.innerHTML = `<br><strong style="color: #569cd6;">━━━ ${title} ━━━</strong>`;
+      output.appendChild(div);
+    }
+
+    function logObject(obj, label = '') {
+      const output = document.getElementById('output');
+      const pre = document.createElement('pre');
+      pre.style.color = '#ce9178';
+      pre.style.marginLeft = '20px';
+      const text = label ? `${label}:\n${JSON.stringify(obj, null, 2)}` : JSON.stringify(obj, null, 2);
+      pre.textContent = text;
+      output.appendChild(pre);
+    }
+
+    window.clearOutput = function() {
+      document.getElementById('output').innerHTML = '';
+    }
+
+    window.testClaimsPresent = async function() {
+      logSection('Test 1: Check Claims Present');
+      
+      try {
+        const claims = await helper.getOrgClaims();
+        
+        if (claims && claims.valid) {
+          log('PASS: JWT claims are present', 'success');
+          logObject(claims, 'Claims');
+        } else {
+          log('FAIL: JWT claims are missing', 'error');
+          log('Try refreshing your session or checking database membership', 'warning');
+        }
+      } catch (error) {
+        log('ERROR: ' + error.message, 'error');
+      }
+    }
+
+    window.testJWTStructure = async function() {
+      logSection('Test 2: JWT Structure');
+      
+      try {
+        const metadata = await helper.debugJWT();
+        
+        if (metadata && metadata.org_id && metadata.org_role) {
+          log('PASS: app_metadata contains org claims', 'success');
+        } else {
+          log('FAIL: app_metadata is missing org claims', 'error');
+        }
+      } catch (error) {
+        log('ERROR: ' + error.message, 'error');
+      }
+    }
+
+    window.testEnsureClaims = async function() {
+      logSection('Test 3: Ensure Claims Present');
+      
+      try {
+        const result = await helper.ensureClaimsPresent();
+        
+        if (result.success) {
+          log('PASS: Claims ensured successfully', 'success');
+          if (result.refreshed) {
+            log('Session was refreshed to get claims', 'info');
+          } else {
+            log('Claims were already present', 'info');
+          }
+          logObject(result.claims, 'Claims');
+        } else {
+          log('FAIL: Could not ensure claims', 'error');
+          log('Error: ' + result.error, 'error');
+          if (result.needs_setup) {
+            log('User may not be in any organization', 'warning');
+          }
+        }
+      } catch (error) {
+        log('ERROR: ' + error.message, 'error');
+      }
+    }
+
+    window.testDatabaseMembership = async function() {
+      logSection('Test 4: Database Membership');
+      
+      try {
+        const { data: { user }, error: userError } = await window.supabase.auth.getUser();
+        
+        if (userError || !user) {
+          log('FAIL: Not authenticated', 'error');
+          return;
+        }
+
+        log('Current user: ' + user.email, 'info');
+
+        const { data: members, error } = await window.supabase
+          .from('organization_members')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'active');
+
+        if (error) {
+          log('FAIL: Error querying organization_members', 'error');
+          logObject(error, 'Error');
+          return;
+        }
+
+        if (members && members.length > 0) {
+          log('PASS: Found active membership(s)', 'success');
+          logObject(members, 'Memberships');
+          
+          const claims = await helper.getOrgClaims();
+          if (claims && claims.org_id === members[0].organization_id) {
+            log('Claims match first membership', 'success');
+          } else {
+            log('Claims do not match first membership', 'warning');
+            log(`JWT org_id: ${claims?.org_id}`, 'info');
+            log(`DB org_id: ${members[0].organization_id}`, 'info');
+          }
+        } else {
+          log('FAIL: No active memberships found', 'error');
+        }
+      } catch (error) {
+        log('ERROR: ' + error.message, 'error');
+      }
+    }
+
+    window.testEdgeFunction = async function() {
+      logSection('Test 5: Edge Function Call');
+      
+      try {
+        log('Calling set-org-claims Edge Function...', 'info');
+        const result = await helper.setOrgClaims();
+        
+        if (result.success) {
+          log('PASS: Edge Function successfully set claims', 'success');
+          logObject(result.claims, 'Claims');
+          log(result.message, 'info');
+        } else {
+          log('FAIL: Edge Function failed', 'error');
+          log('Error: ' + result.error, 'error');
+        }
+      } catch (error) {
+        log('ERROR: ' + error.message, 'error');
+      }
+    }
+
+    window.runAllTests = async function() {
+      clearOutput();
+      log('🚀 Running All JWT Claims Tests', 'info');
+      log('═'.repeat(50), 'info');
+      
+      await testClaimsPresent();
+      await new Promise(r => setTimeout(r, 500));
+      
+      await testJWTStructure();
+      await new Promise(r => setTimeout(r, 500));
+      
+      await testEnsureClaims();
+      await new Promise(r => setTimeout(r, 500));
+      
+      await testDatabaseMembership();
+      await new Promise(r => setTimeout(r, 500));
+      
+      await testEdgeFunction();
+      
+      logSection('All Tests Completed');
+      log('Check results above', 'success');
+    }
+
+    window.refreshSession = async function() {
+      logSection('Manual Session Refresh');
+      
+      try {
+        log('Refreshing session...', 'info');
+        const { data, error } = await window.supabase.auth.refreshSession();
+        
+        if (error) {
+          log('FAIL: Error refreshing session', 'error');
+          logObject(error, 'Error');
+          return;
+        }
+        
+        log('SUCCESS: Session refreshed', 'success');
+        log('Check app_metadata below:', 'info');
+        logObject(data.session.user.app_metadata, 'app_metadata');
+      } catch (error) {
+        log('ERROR: ' + error.message, 'error');
+      }
+    }
+
+    window.showCurrentSession = async function() {
+      logSection('Current Session Info');
+      
+      try {
+        const { data: { session }, error } = await window.supabase.auth.getSession();
+        
+        if (error || !session) {
+          log('No active session', 'warning');
+          return;
+        }
+        
+        log('User ID: ' + session.user.id, 'info');
+        log('Email: ' + session.user.email, 'info');
+        logObject(session.user.app_metadata, 'app_metadata');
+        logObject(session.user, 'Full User Object');
+      } catch (error) {
+        log('ERROR: ' + error.message, 'error');
+      }
+    }
+
+    // Auto-run on page load
+    window.addEventListener('load', async () => {
+      log('JWT Claims Test Page Loaded', 'success');
+      log('Click buttons above to run tests', 'info');
+      log('═'.repeat(50), 'info');
+      
+      // Check if authenticated
+      const { data: { session } } = await window.supabase.auth.getSession();
+      if (session) {
+        log('✅ User is authenticated: ' + session.user.email, 'success');
+      } else {
+        log('⚠️  Not authenticated - please log in first', 'warning');
+      }
+    });
+  </script>
+</body>
+</html>
