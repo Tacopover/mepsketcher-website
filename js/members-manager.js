@@ -12,24 +12,13 @@ export class MembersManager {
   }
 
   /**
-   * Ensure JWT claims are set (call once per session)
+   * Deprecated: JWT claims are no longer used since RLS policies were updated
    * @private
    */
   async _ensureClaimsOnce() {
-    if (this._claimsEnsured) {
-      return; // Already checked this session
-    }
-
-    const result = await this.jwtHelper.ensureClaimsPresent();
-    
-    if (!result.success) {
-      console.warn('Failed to ensure JWT claims:', result.error);
-      // Don't throw - operations might still work with explicit filtering
-    } else if (result.refreshed) {
-      console.log('Session refreshed with new JWT claims');
-    }
-
-    this._claimsEnsured = true;
+    // No-op: JWT claims are no longer required
+    // RLS policies now use direct database queries instead
+    return;
   }
 
   /**
@@ -183,7 +172,6 @@ export class MembersManager {
 
   /**
    * Add an existing user to the organization as an active member
-   * Database trigger will automatically set their JWT claims
    * @private
    */
   async addExistingUserToOrg(userId, email, role) {
@@ -232,7 +220,7 @@ export class MembersManager {
       };
     }
 
-    // Add new active member - trigger will set JWT claims automatically
+    // Add new active member
     const { error: insertError } = await this.supabase
       .from('organization_members')
       .insert({
@@ -319,7 +307,6 @@ export class MembersManager {
 
   /**
    * Accept a pending invitation (called after signup)
-   * Database trigger will automatically set JWT claims when status becomes 'active'
    * @param {string} userId - The user ID of the newly signed up user
    * @param {string} email - The email address used for signup
    */
@@ -342,7 +329,7 @@ export class MembersManager {
       throw new Error('No pending invitation found for this email');
     }
 
-    // Update invitation to active member - trigger will set JWT claims automatically
+    // Update invitation to active member
     const { error: updateError } = await this.supabase
       .from('organization_members')
       .update({

@@ -1,6 +1,12 @@
 /**
  * JWT Claims Helper - Uses Edge Function
- * Ensures JWT contains org_id and org_role claims
+ * 
+ * @deprecated This module is deprecated as of the RLS policy update.
+ * JWT claims (org_id, org_role) are no longer used for authorization.
+ * RLS policies now query the database directly instead of using JWT claims.
+ * 
+ * This file is kept for reference and potential future use.
+ * The set-org-claims edge function is also preserved but not actively used.
  */
 export class JWTClaimsHelper {
   constructor(supabase) {

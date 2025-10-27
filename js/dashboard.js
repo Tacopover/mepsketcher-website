@@ -206,8 +206,7 @@ async function displayOrganizationInfo(org) {
     let membersHtml = '';
     let licenseInfoHtml = '';
     
-    // Initialize members manager for ALL users (admin and non-admin)
-    // This ensures JWT claims are set for everyone
+    // Initialize members manager
     membersManager = new MembersManager(authService.supabase, org.id);
     
     // Load organization members (for both admin and non-admin users)
@@ -289,12 +288,6 @@ async function displayOrganizationInfo(org) {
         }
     } else {
         // Non-admin view - show members list without management controls
-        // Ensure JWT claims are set for non-admin users too
-        try {
-            await membersManager._ensureClaimsOnce();
-        } catch (error) {
-            console.error('Error ensuring JWT claims for non-admin user:', error);
-        }
         
         if (members && members.length > 0) {
             membersHtml = `

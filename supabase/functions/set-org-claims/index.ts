@@ -1,3 +1,18 @@
+/**
+ * DEPRECATED: This edge function is no longer actively used.
+ *
+ * As of the RLS policy update, JWT claims (org_id, org_role) are no longer
+ * required for authorization. RLS policies now query the database directly
+ * instead of relying on JWT claims in app_metadata.
+ *
+ * This function is preserved for potential future use or reference.
+ *
+ * Previous purpose:
+ * - Set organization context (org_id and org_role) in user's JWT app_metadata
+ * - Called after login or when organization membership changed
+ * - Required session refresh to get updated JWT with new claims
+ */
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
