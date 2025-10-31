@@ -198,6 +198,7 @@ export class MembersManager {
         .from('organization_members')
         .update({ 
           status: 'active',
+          has_license: true, // Assign license when reactivating
           role: role,
           accepted_at: new Date().toISOString(),
           removed_at: null
@@ -228,6 +229,7 @@ export class MembersManager {
         organization_id: this.organizationId,
         role: role,
         status: 'active',
+        has_license: true, // Assign license to new member
         accepted_at: new Date().toISOString()
       });
 
@@ -255,7 +257,7 @@ export class MembersManager {
     // Check if invitation already exists
     const { data: existingInvite, error: checkError } = await this.supabase
       .from('organization_members')
-      .select('id, status')
+      .select('user_id, status')
       .eq('email', email)
       .eq('organization_id', this.organizationId)
       .maybeSingle();
@@ -291,8 +293,24 @@ export class MembersManager {
       throw insertError;
     }
 
-    // TODO: Send invitation email via Supabase Edge Function
-    // await this.sendInvitationEmail(email, invite.id);
+    console.log('Pending invitation created:', invite.id);
+
+    // Send invitation email via Supabase Edge Function
+    const emailResult = await this.sendInvitationEmail(invite.id, email, role);
+    
+    if (!emailResult.success) {
+      console.error('Failed to send invitation email:', emailResult.error);
+      // Don't fail the invitation - just log the error
+      // Admin can resend manually if needed
+      return {
+        success: true,
+        action: 'invited',
+        email,
+        message: `Invitation created for ${email}, but email failed to send. Please try resending.`,
+        email_sent: false,
+        invitation_id: invite.id
+      };
+    }
 
     // Don't increment used_licenses yet - only when they accept
 
@@ -362,6 +380,7 @@ export class MembersManager {
       .from('organization_members')
       .update({ 
         status: 'inactive',
+        has_license: false, // Remove license assignment
         removed_at: new Date().toISOString()
       })
       .eq('user_id', userId)
@@ -434,6 +453,71 @@ export class MembersManager {
     if (error) {
       console.error('Error incrementing licenses:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Send invitation email via edge function
+   * @private
+   */
+  async sendInvitationEmail(invitationId, email, role) {
+    try {
+      // Get current user and organization info
+      const { data: { user } } = await this.supabase.auth.getUser();
+      
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
+      const { data: userProfile } = await this.supabase
+        .from('user_profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+
+      const { data: org } = await this.supabase
+        .from('organizations')
+        .select('name')
+        .eq('id', this.organizationId)
+        .single();
+
+      if (!userProfile || !org) {
+        return { success: false, error: 'Failed to get organization details' };
+      }
+
+      console.log(`Sending invitation email to ${email} for org ${org.name}`);
+
+      // Get auth token for edge function
+      const { data: { session } } = await this.supabase.auth.getSession();
+      
+      if (!session) {
+        return { success: false, error: 'No active session' };
+      }
+
+      // Call edge function to send email
+      const { data, error } = await this.supabase.functions.invoke(
+        'send-invitation-email',
+        {
+          body: {
+            invitationId: invitationId,
+            email: email,
+            organizationName: org.name,
+            inviterName: userProfile.name,
+            role: role
+          }
+        }
+      );
+
+      if (error) {
+        console.error('Edge function error:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('Invitation email sent successfully:', data);
+      return { success: true, emailId: data.emailId };
+    } catch (error) {
+      console.error('Error sending invitation email:', error);
+      return { success: false, error: error.message };
     }
   }
 

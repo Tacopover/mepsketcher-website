@@ -173,7 +173,7 @@ class MepSketcherLicensing {
     /**
      * Purchase yearly license using Paddle v2
      */
-    async purchaseYearlyLicense() {
+    async purchaseYearlyLicense(quantity = 1) {
         if (!this.isInitialized) {
             console.error('Paddle not initialized');
             this.showError('Payment system unavailable. Please try again later.');
@@ -220,14 +220,86 @@ class MepSketcherLicensing {
 
         console.log('Found organization:', organizations.id);
 
-        // // TEMPORARY TEST: Try to insert rows directly instead of going through Paddle
-        // console.log('=== TESTING DIRECT DATABASE INSERT ===');
-        // await this.testDirectDatabaseInsert(user.id, organizations.id, user.email);
-        // return;
+        // Check if organization has existing licenses
+        console.log('Checking for existing licenses...');
+        const { data: existingLicense, error: licenseError } = await window.supabase
+            .from('organization_licenses')
+            .select('*')
+            .eq('organization_id', organizations.id)
+            .maybeSingle();
 
-        // COMMENTED OUT FOR TESTING - Original Paddle checkout flow
-        // Validate price ID first
-        const priceId = PaddleConfig.products.yearly.id;
+        if (licenseError && licenseError.code !== 'PGRST116') {
+            console.error('Error checking licenses:', licenseError);
+        }
+
+        let priceId;
+        let customData = {
+            userId: user.id,
+            organizationId: organizations.id,
+            email: user.email,
+            license_type: 'yearly',
+            product: 'mepsketcher',
+            version: '1.0',
+            timestamp: new Date().toISOString(),
+            quantity: quantity
+        };
+
+        // If user has existing licenses, create prorated price
+        if (existingLicense && existingLicense.expires_at) {
+            const expiresAt = new Date(existingLicense.expires_at);
+            const now = new Date();
+            
+            // Only prorate if license hasn't expired
+            if (expiresAt > now) {
+                const remainingDays = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
+                console.log(`Existing license found with ${remainingDays} days remaining`);
+                
+                // Create custom prorated price
+                try {
+                    const { data: { session } } = await window.supabase.auth.getSession();
+                    const response = await fetch(`${window.supabase.supabaseUrl}/functions/v1/create-custom-price`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${session.access_token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            organizationId: organizations.id,
+                            quantity: quantity,
+                            remainingDays: remainingDays
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error('Failed to create custom price:', errorData);
+                        throw new Error(errorData.error || 'Failed to create prorated price');
+                    }
+
+                    const priceData = await response.json();
+                    console.log('Custom prorated price created:', priceData);
+                    
+                    priceId = priceData.priceId;
+                    customData.prorated = true;
+                    customData.remainingDays = remainingDays;
+                    customData.proratedAmount = priceData.amount;
+                } catch (error) {
+                    console.error('Error creating prorated price:', error);
+                    this.showError('Failed to calculate prorated price. Please try again or contact support.');
+                    return;
+                }
+            } else {
+                // License expired, use standard price
+                console.log('Existing license has expired, using standard price');
+                priceId = PaddleConfig.products.yearly.id;
+            }
+        } else {
+            // No existing license, use standard price
+            console.log('No existing license found, using standard price');
+            priceId = PaddleConfig.products.yearly.id;
+        }
+
+        // Validate price ID
         if (!priceId || !priceId.startsWith('pri_')) {
             console.error('Invalid price ID:', priceId);
             this.showError('Configuration error: Invalid price ID. Please check your Paddle configuration.');
@@ -237,21 +309,10 @@ class MepSketcherLicensing {
         // Prepare checkout items array (required format)
         const itemsList = [{
             priceId: priceId,
-            quantity: 1
+            quantity: quantity
         }];
 
         console.log('Using price ID:', priceId);
-
-        // Prepare custom data with user information for webhook
-        const customData = {
-            userId: user.id,
-            organizationId: organizations.id,
-            email: user.email,
-            license_type: 'yearly',
-            product: 'mepsketcher',
-            version: '1.0',
-            timestamp: new Date().toISOString()
-        };
 
         // Build checkout options object
         const checkoutOptions = {
@@ -283,7 +344,6 @@ class MepSketcherLicensing {
             console.error('Failed to open checkout:', error);
             this.showError('Payment system unavailable. Please try again later.');
         }
-        //END OF COMMENTED SECTION
     }
 
     /**
@@ -646,9 +706,9 @@ function startTrial() {
     }
 }
 
-function purchaseYearlyLicense() {
+function purchaseYearlyLicense(quantity = 1) {
     if (mepSketcherLicensing) {
-        mepSketcherLicensing.purchaseYearlyLicense();
+        mepSketcherLicensing.purchaseYearlyLicense(quantity);
     } else {
         console.error('Licensing system not initialized');
     }

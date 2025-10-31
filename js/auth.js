@@ -90,9 +90,22 @@ class AuthService {
     }
 
         // Sign up new user and create organization using Edge Function
-    async signUp(email, password, name, organizationName) {
+    async signUp(email, password, name, organizationName, invitationToken = null) {
         try {
             console.log(`Signing up user: ${email} with organization: ${organizationName || 'default'}`);
+            
+            const requestBody = {
+                email,
+                password,
+                name,
+                organizationName
+            };
+
+            // Add invitation token if provided
+            if (invitationToken) {
+                requestBody.invitationToken = invitationToken;
+                console.log('Signing up with invitation token');
+            }
             
             const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/signup`, {
               method: 'POST',
@@ -101,12 +114,7 @@ class AuthService {
                 'apikey': SUPABASE_CONFIG.anonKey,
                 'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`
               },
-              body: JSON.stringify({
-                email,
-                password,
-                name,
-                organizationName
-              })
+              body: JSON.stringify(requestBody)
             });
 
             const data = await response.json();

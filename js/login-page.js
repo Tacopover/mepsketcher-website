@@ -11,12 +11,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const signupMessage = document.getElementById('signupMessage');
     const resetMessage = document.getElementById('resetMessage');
 
+    // Check for invitation token in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const invitationToken = urlParams.get('invitation_token');
+    const invitedEmail = urlParams.get('email');
+    const invitedOrganization = urlParams.get('organization');
+
     // Get tab buttons
     const tabButtons = document.querySelectorAll('.auth-tab');
     
     // Get forgot password link
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     const backToLoginBtn = document.getElementById('backToLogin');
+
+    // If invitation token exists, switch to signup tab and pre-fill email & organization
+    if (invitationToken && invitedEmail && invitedOrganization) {
+        // Switch to signup tab
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        tabButtons[1].classList.add('active'); // Assuming signup is second tab
+        
+        loginForm.classList.remove('active');
+        resetPasswordForm.classList.remove('active');
+        signupForm.classList.add('active');
+
+        // Pre-fill email and make read-only
+        const emailInput = document.getElementById('signupEmail');
+        emailInput.value = invitedEmail;
+        emailInput.readOnly = true;
+        emailInput.style.backgroundColor = '#f5f5f5';
+        emailInput.style.cursor = 'not-allowed';
+
+        // Pre-fill organization name and make read-only
+        const orgInput = document.getElementById('organizationName');
+        orgInput.value = invitedOrganization;
+        orgInput.readOnly = true;
+        orgInput.style.backgroundColor = '#f5f5f5';
+        orgInput.style.cursor = 'not-allowed';
+
+        // Update the organization hint text
+        const orgHint = orgInput.nextElementSibling;
+        if (orgHint && orgHint.classList.contains('form-hint')) {
+            orgHint.textContent = 'You are joining an existing organization';
+            orgHint.style.color = '#0066cc';
+        }
+
+        // Show invitation message
+        showMessage(signupMessage, '✉️ You\'ve been invited to join an organization! Complete signup below.', 'info');
+    }
 
     // Tab switching
     tabButtons.forEach(button => {
@@ -125,7 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         showMessage(signupMessage, 'Creating account...', 'info');
         
-        const result = await authService.signUp(email, password, name, organizationName);
+        // Pass invitation token if present
+        const result = await authService.signUp(email, password, name, organizationName, invitationToken);
         
         if (result.success) {
             showMessage(signupMessage, 'Account created successfully! Please check your email to verify your account.', 'success');

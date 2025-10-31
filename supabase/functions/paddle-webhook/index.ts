@@ -174,31 +174,55 @@ Deno.serve(async (req) => {
 
       // 3. CRITICAL: Always ensure user is in organization_members
       console.log("Checking if user is in organization_members");
-      const { data: membershipCheck } = await supabase
+      const { data: membershipCheck, error: memberCheckError } = await supabase
         .from("organization_members")
-        .select("id, role")
+        .select("user_id, role, status")
         .eq("user_id", userId)
         .eq("organization_id", organizationId)
         .maybeSingle();
 
+      if (memberCheckError && memberCheckError.code !== "PGRST116") {
+        console.error("Error checking membership:", memberCheckError);
+        // Don't throw - continue with license operations
+      }
+
       if (!membershipCheck) {
-        console.log("User not in organization_members, adding as admin");
+        console.log(
+          "User not in organization_members, attempting to add as admin"
+        );
+
+        // Use upsert instead of insert to handle race conditions
         const { error: memberError } = await supabase
           .from("organization_members")
-          .insert({
-            user_id: userId,
-            organization_id: organizationId,
-            role: "admin",
-          });
+          .upsert(
+            {
+              user_id: userId,
+              organization_id: organizationId,
+              role: "admin",
+              status: "active",
+              email: userEmail,
+              has_license: true,
+              accepted_at: new Date().toISOString(),
+            },
+            {
+              onConflict: "organization_id,user_id",
+              ignoreDuplicates: true,
+            }
+          );
 
         if (memberError) {
           console.error(
             "Error adding user to organization_members:",
             memberError
           );
-          throw memberError;
+          // Don't throw - if user is already there, that's fine
+          // Only log the error and continue
+          console.log(
+            "Continuing with license operations despite membership error"
+          );
+        } else {
+          console.log("Successfully added user to organization_members");
         }
-        console.log("Successfully added user to organization_members");
       } else {
         console.log(
           `User already in organization_members with role: ${membershipCheck.role}`
@@ -214,15 +238,34 @@ Deno.serve(async (req) => {
 
       if (existingLicense) {
         // Update existing license entry
+        // Check if this is a prorated purchase (adding to existing license period)
+        const isProrated = custom_data?.prorated === true;
+
+        let newExpiryDate;
+        if (isProrated) {
+          // For prorated purchases, keep the existing expiry date
+          // (user bought additional licenses for the same period)
+          newExpiryDate = existingLicense.expires_at;
+          console.log(
+            `Prorated purchase: keeping existing expiry date ${newExpiryDate}`
+          );
+        } else {
+          // For regular purchases, extend by 1 year from now
+          newExpiryDate = new Date(
+            Date.now() + 365 * 24 * 60 * 60 * 1000
+          ).toISOString();
+          console.log(
+            `Standard purchase: setting new expiry date ${newExpiryDate}`
+          );
+        }
+
         const { data: updatedLicense, error: updateError } = await supabase
           .from("organization_licenses")
           .update({
             total_licenses: existingLicense.total_licenses + quantity,
             paddle_id: transactionId,
             updated_at: new Date().toISOString(),
-            expires_at: new Date(
-              Date.now() + 365 * 24 * 60 * 60 * 1000
-            ).toISOString(),
+            expires_at: newExpiryDate,
           })
           .eq("id", existingLicense.id)
           .select()
@@ -243,6 +286,8 @@ Deno.serve(async (req) => {
             licenses_added: quantity,
             total_licenses: updatedLicense.total_licenses,
             organization_id: organizationId,
+            prorated: isProrated,
+            expires_at: newExpiryDate,
           }),
           {
             status: 200,

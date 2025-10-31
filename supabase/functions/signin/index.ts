@@ -173,6 +173,9 @@ Deno.serve(async (req) => {
                     organization_id: organizationId,
                     user_id: userId,
                     role: "member",
+                    status: "active",
+                    has_license: true, // Assign license to new member
+                    accepted_at: new Date().toISOString(),
                   });
 
                 if (memberError) {
@@ -214,6 +217,9 @@ Deno.serve(async (req) => {
                     organization_id: organizationId,
                     user_id: userId,
                     role: "owner",
+                    status: "active",
+                    has_license: true, // Assign license to organization owner
+                    accepted_at: new Date().toISOString(),
                   });
 
                 if (memberError) {

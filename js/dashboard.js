@@ -129,10 +129,12 @@ async function loadOrganizationData() {
         }
 
         // Get organizations where user is a member (just get the IDs and roles)
+        // Only get active memberships
         const { data: memberships, error: membershipsError } = await authService.supabase
             .from('organization_members')
             .select('organization_id, role')
-            .eq('user_id', user.id);
+            .eq('user_id', user.id)
+            .eq('status', 'active'); // Only load active memberships
 
         if (membershipsError) {
             console.error('Error loading memberships:', membershipsError);
@@ -210,10 +212,12 @@ async function displayOrganizationInfo(org) {
     membersManager = new MembersManager(authService.supabase, org.id);
     
     // Load organization members (for both admin and non-admin users)
+    // Only load active members
     const { data: members, error: membersError } = await authService.supabase
         .from('organization_members')
         .select('user_id, email, role, created_at')
-        .eq('organization_id', org.id);
+        .eq('organization_id', org.id)
+        .eq('status', 'active'); // Only show active members
 
     if (membersError) {
         console.error('Error loading members:', membersError);
@@ -515,12 +519,13 @@ async function handleAddMember(orgId) {
         return;
     }
 
-    // Simple query: Check if already a member
+    // Simple query: Check if already an active member
     const { data: existing } = await authService.supabase
         .from('organization_members')
-        .select('user_id')
+        .select('user_id, status')
         .eq('organization_id', orgId)
         .eq('user_id', profile.id)
+        .eq('status', 'active') // Only check for active members
         .maybeSingle();
 
     if (existing) {
@@ -605,11 +610,12 @@ async function loadLicenses() {
 
 // Load full license information for admin users
 async function loadAdminLicenses(user, userOrgs) {
-    // Simple query: Get organizations where user is a member
+    // Simple query: Get organizations where user is an active member
     const { data: memberships, error: membershipsError } = await authService.supabase
         .from('organization_members')
         .select('organization_id')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('status', 'active'); // Only load active memberships
 
     if (membershipsError) {
         console.error('Error loading memberships:', membershipsError);
@@ -655,11 +661,12 @@ async function loadAdminLicenses(user, userOrgs) {
 
 // Load personal license status for non-admin members
 async function loadMemberLicenseStatus(user) {
-    // Get user's membership with license status
+    // Get user's active membership with license status
     const { data: membership, error: memberError } = await authService.supabase
         .from('organization_members')
         .select('organization_id, has_license, role')
         .eq('user_id', user.id)
+        .eq('status', 'active') // Only load active membership
         .single();
 
     if (memberError) {
@@ -977,6 +984,9 @@ async function performLicensePurchase(numberOfLicenses, licenseType) {
                 organization_id: orgId,
                 user_id: user.id,
                 role: 'admin',
+                status: 'active',
+                has_license: true, // Assign license to admin
+                accepted_at: new Date().toISOString(),
                 created_at: new Date().toISOString()
             });
 
@@ -1077,9 +1087,36 @@ function handleBuyMoreLicenses(license) {
         return;
     }
 
-    // Open Paddle checkout for purchasing additional licenses
-    // The quantity will be specified in the Paddle checkout
-    mepSketcherLicensing.purchaseYearlyLicense();
+    // Prompt for quantity of additional licenses
+    const quantityStr = prompt('How many additional licenses would you like to purchase?', '1');
+    if (!quantityStr) {
+        return; // User cancelled
+    }
+
+    const quantity = parseInt(quantityStr);
+    if (isNaN(quantity) || quantity < 1 || quantity > 1000) {
+        alert('Please enter a valid number between 1 and 1000');
+        return;
+    }
+
+    // Calculate remaining days for prorated pricing
+    const expiresAt = new Date(license.expires_at);
+    const now = new Date();
+    const remainingDays = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
+
+    if (remainingDays > 0) {
+        // Show confirmation with prorated info
+        const dailyRate = 200 / 365; // $200 per year / 365 days
+        const totalCost = Math.ceil(dailyRate * remainingDays * quantity * 100) / 100;
+        const message = `You are purchasing ${quantity} additional license(s) for the remaining ${remainingDays} days of your current license period.\n\nEstimated cost: $${totalCost.toFixed(2)} USD\n\n(This is prorated based on your existing license expiry date)`;
+        
+        if (!confirm(message)) {
+            return; // User cancelled
+        }
+    }
+
+    // Open Paddle checkout for purchasing additional licenses with specified quantity
+    mepSketcherLicensing.purchaseYearlyLicense(quantity);
 }
 
 // Handle extend license

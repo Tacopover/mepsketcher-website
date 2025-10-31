@@ -13,6 +13,7 @@ interface SignUpRequest {
   password: string;
   name: string;
   organizationName?: string;
+  invitationToken?: string;
 }
 
 interface SignUpResponse {
@@ -26,6 +27,19 @@ interface SignUpResponse {
   requiresEmailConfirmation?: boolean;
   message?: string;
   error?: string;
+  joinedOrganization?: boolean;
+  organizationId?: string;
+}
+
+/**
+ * Hash token using SHA-256 (same algorithm as send-invitation-email)
+ */
+async function hashToken(token: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(token);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 Deno.serve(async (req) => {
@@ -51,7 +65,8 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const requestBody: SignUpRequest = await req.json();
-    const { email, password, name, organizationName } = requestBody;
+    const { email, password, name, organizationName, invitationToken } =
+      requestBody;
 
     // Validate required fields
     if (!email || !password || !name) {
@@ -68,6 +83,40 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Processing signup for: ${email}`);
+
+    // Check for invitation token BEFORE creating auth user
+    let pendingInvitation = null;
+    if (invitationToken) {
+      console.log("Checking invitation token");
+
+      try {
+        const tokenHash = await hashToken(invitationToken);
+
+        const { data: invitation, error: inviteError } = await supabaseAdmin
+          .from("organization_members")
+          .select("*")
+          .eq("invite_token_hash", tokenHash)
+          .eq("status", "pending")
+          .eq("email", email)
+          .maybeSingle();
+
+        if (invitation && !inviteError) {
+          // Check if not expired
+          const expiresAt = new Date(invitation.invitation_expires_at);
+          if (expiresAt > new Date()) {
+            console.log("Valid invitation found");
+            pendingInvitation = invitation;
+          } else {
+            console.log("Invitation has expired");
+          }
+        } else {
+          console.log("No valid invitation found for this token and email");
+        }
+      } catch (error) {
+        console.error("Error checking invitation:", error);
+        // Continue with normal signup if invitation check fails
+      }
+    }
 
     // Step 1: Create auth user using signUp (triggers confirmation email)
     const { data: authData, error: authError } =
@@ -125,7 +174,91 @@ Deno.serve(async (req) => {
 
         console.log("User profile created");
 
-        // 2b. Handle organization
+        // 2b. Check if user is accepting an invitation
+        if (pendingInvitation) {
+          console.log("Processing invitation acceptance");
+
+          try {
+            // Accept invitation - update to active and assign license
+            const { error: updateError } = await supabaseAdmin
+              .from("organization_members")
+              .update({
+                user_id: userId,
+                status: "active",
+                has_license: true, // Assign license to new member
+                accepted_at: new Date().toISOString(),
+                invite_token_hash: null, // Clear token hash
+                invite_token_sent_at: null,
+                invitation_expires_at: null,
+              })
+              .eq("id", pendingInvitation.id);
+
+            if (updateError) {
+              console.error("Error accepting invitation:", updateError);
+              throw new Error(
+                `Failed to accept invitation: ${updateError.message}`
+              );
+            }
+
+            console.log(
+              "Invitation accepted successfully and license assigned"
+            );
+
+            // Increment used licenses
+            const { data: license } = await supabaseAdmin
+              .from("organization_licenses")
+              .select("used_licenses")
+              .eq("organization_id", pendingInvitation.organization_id)
+              .single();
+
+            if (license) {
+              await supabaseAdmin
+                .from("organization_licenses")
+                .update({
+                  used_licenses: license.used_licenses + 1,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("organization_id", pendingInvitation.organization_id);
+
+              console.log("License count incremented");
+            }
+
+            // Get organization name for response message
+            const { data: org } = await supabaseAdmin
+              .from("organizations")
+              .select("name")
+              .eq("id", pendingInvitation.organization_id)
+              .single();
+
+            // Return success - user joined existing org
+            return new Response(
+              JSON.stringify({
+                success: true,
+                user: {
+                  id: userId,
+                  email: email,
+                  name: name,
+                  emailConfirmed: true,
+                },
+                requiresEmailConfirmation: false,
+                message: `Account created! You've joined ${
+                  org?.name || "the organization"
+                }.`,
+                joinedOrganization: true,
+                organizationId: pendingInvitation.organization_id,
+              } as SignUpResponse),
+              {
+                status: 200,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              }
+            );
+          } catch (inviteError) {
+            console.error("Error processing invitation:", inviteError);
+            // Continue with normal organization creation if invitation fails
+          }
+        }
+
+        // 2c. Handle organization (no invitation or invitation failed)
         const orgName =
           organizationName?.trim() || `${email.split("@")[0]}'s Organization`;
 
@@ -153,6 +286,9 @@ Deno.serve(async (req) => {
               organization_id: organizationId,
               user_id: userId,
               role: "member",
+              status: "active",
+              has_license: true, // Assign license to new member
+              accepted_at: new Date().toISOString(),
             });
 
           if (memberError) {
@@ -191,6 +327,9 @@ Deno.serve(async (req) => {
               organization_id: organizationId,
               user_id: userId,
               role: "owner",
+              status: "active",
+              has_license: true, // Assign license to organization owner
+              accepted_at: new Date().toISOString(),
             });
 
           if (memberError) {
