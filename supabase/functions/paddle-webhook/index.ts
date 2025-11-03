@@ -127,6 +127,7 @@ Deno.serve(async (req) => {
 
       // 1. Determine organization ID (from custom_data or lookup)
       let organizationId: string | null = organizationIdFromCustomData || null;
+      let oldPersonalOrgId: string | null = null; // Track personal trial org for cleanup
 
       if (!organizationId) {
         // No organization ID provided, try to find existing membership
@@ -150,15 +151,41 @@ Deno.serve(async (req) => {
         console.log("Using organization from custom_data:", organizationId);
       }
 
-      // 2. If still no organization, create one
+      // 2. If still no organization, check for personal trial org
       if (!organizationId) {
-        console.log("No organization found, creating new organization");
+        console.log("No organization found, checking for personal trial org");
+        
+        // Check if user has a personal trial organization
+        const { data: existingUser } = await supabase
+          .from("users")
+          .select("organization_id, organizations(id, name, is_personal_trial_org)")
+          .eq("id", userId)
+          .single();
+
+        if (existingUser && existingUser.organizations) {
+          const userOrg = Array.isArray(existingUser.organizations)
+            ? existingUser.organizations[0]
+            : existingUser.organizations;
+          
+          if (userOrg?.is_personal_trial_org) {
+            console.log("Found personal trial org, will replace with real org:", userOrg.id);
+            oldPersonalOrgId = userOrg.id;
+          }
+        }
+
+        // Get organization name from custom_data or use default
+        const organizationName = custom_data?.organizationName || 
+                                custom_data?.organization_name ||
+                                `${userEmail}'s Organization`;
+
+        console.log("Creating new organization:", organizationName);
         const { data: newOrg, error: orgError } = await supabase
           .from("organizations")
           .insert({
-            name: `${userEmail}'s Organization`,
+            name: organizationName,
             owner_id: userId,
             is_trial: false,
+            is_personal_trial_org: false, // This is a real organization
           })
           .select()
           .single();
@@ -170,6 +197,20 @@ Deno.serve(async (req) => {
 
         organizationId = newOrg.id;
         console.log("Created new organization:", organizationId);
+
+        // If user had a personal trial org, update their organization_id
+        if (oldPersonalOrgId) {
+          console.log("Updating user's organization from personal trial org to new org");
+          const { error: updateUserError } = await supabase
+            .from("users")
+            .update({ organization_id: organizationId })
+            .eq("id", userId);
+
+          if (updateUserError) {
+            console.error("Error updating user organization:", updateUserError);
+            // Non-fatal, continue
+          }
+        }
       }
 
       // 3. CRITICAL: Always ensure user is in organization_members
@@ -331,6 +372,23 @@ Deno.serve(async (req) => {
           );
         } else {
           console.log("Organization marked as paid (trial ended)");
+        }
+
+        // Delete old personal trial organization if it exists
+        if (oldPersonalOrgId) {
+          console.log("Deleting old personal trial organization:", oldPersonalOrgId);
+          const { error: deleteOrgError } = await supabase
+            .from("organizations")
+            .delete()
+            .eq("id", oldPersonalOrgId)
+            .eq("is_personal_trial_org", true); // Safety check
+
+          if (deleteOrgError) {
+            console.error("Error deleting personal trial org:", deleteOrgError);
+            // Non-fatal - org will be orphaned but user is still successfully set up
+          } else {
+            console.log("Successfully deleted personal trial org");
+          }
         }
 
         return new Response(

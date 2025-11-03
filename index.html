@@ -11,7 +11,7 @@
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.paddle.com https://cdn.jsdelivr.net;
-        style-src 'self' 'unsafe-inline';
+        style-src 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com;
         connect-src 'self' https://*.paddle.com https://sandbox-checkout-service.paddle.com https://checkout-service.paddle.com https://*.supabase.co;
         img-src 'self' data: https:;
         font-src 'self' data:;
@@ -129,7 +129,7 @@
                         <h3 class="pricing-title">Free Trial</h3>
                         <div class="pricing-price">
                             <span class="price-amount">Free</span>
-                            <span class="price-period">30 days</span>
+                            <span class="price-period">14 days</span>
                         </div>
                     </div>
                     <div class="pricing-features">
@@ -152,7 +152,7 @@
                     <div class="pricing-header">
                         <h3 class="pricing-title">Yearly License</h3>
                         <div class="pricing-price">
-                            <span class="price-amount">$299</span>
+                            <span id="yearly-license-price" class="price-amount">€200</span>
                             <span class="price-period">per year</span>
                         </div>
                     </div>
@@ -372,6 +372,7 @@
     <!-- MepSketcher Scripts -->
     <script src="js/paddle-config.js"></script>
     <script src="js/paddle.js"></script>
+    <script src="js/pricing.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

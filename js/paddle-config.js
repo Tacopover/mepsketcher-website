@@ -16,10 +16,8 @@ const PaddleConfig = {
     // Environment: 'sandbox' for testing, 'production' for live
     environment: 'sandbox',
     
-    // Your Paddle Client-Side Token (REPLACE THIS)
-    // Create this in Paddle > Developer tools > Authentication
-    // Use test_ prefix for sandbox, live_ prefix for production
-    clientToken: 'test_1f770571fc299f02717fb5cf005', // TODO: Replace with your actual client-side token
+    // Your Paddle Client-Side Token
+    clientToken: 'test_1f770571fc299f02717fb5cf005', 
     
     // Price IDs for different license types (REPLACE THESE)
     // In Paddle v2, you use Price IDs (pri_) instead of Product IDs
@@ -182,6 +180,65 @@ window.testMinimalCheckout = testMinimalCheckout;
 window.initializePaddle = initializePaddle;
 window.checkPaddleStatus = checkPaddleStatus;
 window.debugPendingActions = debugPendingActions;
+
+// Simple initialization function that matches test page
+function initializePaddleSimple() {
+    console.log('=== PADDLE INITIALIZATION (SIMPLIFIED) ===');
+    console.log('1. Checking if Paddle SDK loaded...');
+    
+    if (typeof Paddle === 'undefined') {
+        console.error('ERROR: Paddle SDK not loaded!');
+        return false;
+    }
+    
+    console.log('✓ Paddle SDK loaded successfully');
+
+    // Step 2: Set environment to sandbox
+    console.log('2. Setting environment to sandbox...');
+    try {
+        Paddle.Environment.set("sandbox");
+        console.log('✓ Environment set to sandbox');
+    } catch (error) {
+        console.error('✗ Failed to set environment:', error);
+        return false;
+    }
+
+    // Step 3: Initialize Paddle with client token
+    console.log('3. Initializing Paddle with client token...');
+    console.log('   Token:', PaddleConfig.clientToken.substring(0, 15) + '...');
+    try {
+        Paddle.Initialize({ 
+            token: PaddleConfig.clientToken,
+            eventCallback: function(data) {
+                console.log('Paddle Event:', data);
+            }
+        });
+        console.log('✓ Paddle initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('✗ Failed to initialize Paddle:', error);
+        return false;
+    }
+}
+
+// Wait for Paddle SDK to be ready, then initialize (exactly like test page)
+function waitForPaddle() {
+    if (typeof Paddle !== 'undefined') {
+        // Paddle is ready
+        initializePaddleSimple();
+    } else {
+        // Wait a bit longer
+        console.log('Waiting for Paddle SDK to load...');
+        setTimeout(waitForPaddle, 100);
+    }
+}
+
+// Start when page loads (exactly like test page)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', waitForPaddle);
+} else {
+    waitForPaddle();
+}
 
 // Export for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paddle Price Test - Minimal Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .price-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #007bff;
+            margin: 20px 0;
+            min-height: 60px;
+        }
+        .status {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .error {
+            border-left-color: #dc3545;
+            color: #dc3545;
+        }
+        .success {
+            border-left-color: #28a745;
+            color: #28a745;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px 10px 0;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .code {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Paddle Price Preview Test</h1>
+        
+        <div class="info">
+            <strong>Testing Configuration:</strong>
+            <ul>
+                <li>Environment: <strong>Sandbox</strong></li>
+                <li>Client Token: <strong>test_1f770571fc299f02717fb5cf005</strong></li>
+                <li>Price ID: <strong>pri_01k6z9d511d44y0qg95nbn65qw</strong></li>
+            </ul>
+        </div>
+
+        <h2>Current Price:</h2>
+        <div id="price-display" class="price-display">Loading...</div>
+
+        <div id="status" class="status">Initializing test...</div>
+
+        <h3>Manual Tests:</h3>
+        <button onclick="testFetchPrice()">Test Fetch Price</button>
+        <button onclick="testPaddleStatus()">Check Paddle Status</button>
+        <button onclick="clearConsole()">Clear Console</button>
+
+        <h3>Implementation Steps:</h3>
+        <div class="code">
+Step 1: ✓ Include Paddle.js SDK<br>
+Step 2: ⏳ Set environment to sandbox<br>
+Step 3: ⏳ Initialize Paddle with client token<br>
+Step 4: ⏳ Call Paddle.PricePreview()<br>
+Step 5: ⏳ Display returned price
+        </div>
+    </div>
+
+    <!-- Step 1: Include Paddle.js SDK v2 -->
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+
+    <!-- Step 2-5: Initialize and fetch price -->
+    <script type="text/javascript">
+        // Configuration
+        const PRICE_ID = 'pri_01k6z9d511d44y0qg95nbn65qw';
+        const CLIENT_TOKEN = 'test_1f770571fc299f02717fb5cf005';
+        
+        // Update status display
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = 'status ' + type;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Update price display
+        function updatePrice(price) {
+            document.getElementById('price-display').textContent = price;
+        }
+
+        // Main initialization function
+        function initializePaddleTest() {
+            console.log('=== PADDLE INITIALIZATION TEST ===');
+            console.log('1. Checking if Paddle SDK loaded...');
+            
+            if (typeof Paddle === 'undefined') {
+                updateStatus('ERROR: Paddle SDK not loaded!', 'error');
+                updatePrice('Error');
+                return;
+            }
+            
+            console.log('✓ Paddle SDK loaded successfully');
+            updateStatus('Step 1: Paddle SDK loaded ✓');
+
+            // Step 2: Set environment to sandbox
+            console.log('2. Setting environment to sandbox...');
+            try {
+                Paddle.Environment.set("sandbox");
+                console.log('✓ Environment set to sandbox');
+                updateStatus('Step 2: Environment set to sandbox ✓');
+            } catch (error) {
+                console.error('✗ Failed to set environment:', error);
+                updateStatus('ERROR: Failed to set environment - ' + error.message, 'error');
+                return;
+            }
+
+            // Step 3: Initialize Paddle with client token
+            console.log('3. Initializing Paddle with client token...');
+            console.log('   Token:', CLIENT_TOKEN.substring(0, 15) + '...');
+            try {
+                Paddle.Initialize({ 
+                    token: CLIENT_TOKEN,
+                    eventCallback: function(data) {
+                        console.log('Paddle Event:', data);
+                    }
+                });
+                console.log('✓ Paddle initialized successfully');
+                updateStatus('Step 3: Paddle initialized ✓');
+            } catch (error) {
+                console.error('✗ Failed to initialize Paddle:', error);
+                updateStatus('ERROR: Failed to initialize - ' + error.message, 'error');
+                return;
+            }
+
+            // Step 4: Fetch price using PricePreview
+            console.log('4. Fetching price from Paddle...');
+            console.log('   Price ID:', PRICE_ID);
+            fetchPrice();
+        }
+
+        // Fetch price from Paddle
+        function fetchPrice() {
+            const request = {
+                items: [{
+                    priceId: PRICE_ID,
+                    quantity: 1
+                }]
+            };
+
+            console.log('   Request:', JSON.stringify(request, null, 2));
+            updateStatus('Step 4: Calling Paddle.PricePreview()...');
+
+            Paddle.PricePreview(request)
+                .then(function(result) {
+                    console.log('✓ Price preview response received');
+                    console.log('   Full response:', result);
+                    
+                    if (result && result.data && result.data.details && result.data.details.lineItems) {
+                        const lineItem = result.data.details.lineItems[0];
+                        const price = lineItem.formattedTotals.subtotal;
+                        
+                        console.log('✓ Price extracted:', price);
+                        console.log('   Line item details:', lineItem);
+                        
+                        updatePrice(price);
+                        updateStatus('SUCCESS: Price fetched from Paddle! ✓', 'success');
+                        
+                        // Log all available pricing info
+                        console.log('=== PRICING DETAILS ===');
+                        console.log('Subtotal:', lineItem.formattedTotals.subtotal);
+                        console.log('Total:', lineItem.formattedTotals.total);
+                        console.log('Tax:', lineItem.formattedTotals.tax);
+                        console.log('Currency:', result.data.currencyCode);
+                    } else {
+                        console.error('✗ Unexpected response structure:', result);
+                        updateStatus('ERROR: Invalid response structure', 'error');
+                        updatePrice('Error');
+                    }
+                })
+                .catch(function(error) {
+                    console.error('✗ Failed to fetch price:', error);
+                    console.error('   Error details:', error);
+                    updateStatus('ERROR: ' + error.message, 'error');
+                    updatePrice('Error');
+                });
+        }
+
+        // Test function for manual triggering
+        function testFetchPrice() {
+            console.log('\n=== MANUAL TEST TRIGGERED ===');
+            updateStatus('Manually fetching price...');
+            fetchPrice();
+        }
+
+        // Check Paddle status
+        function testPaddleStatus() {
+            console.log('\n=== PADDLE STATUS CHECK ===');
+            console.log('Paddle loaded:', typeof Paddle !== 'undefined');
+            
+            if (typeof Paddle !== 'undefined') {
+                console.log('Paddle.Environment:', typeof Paddle.Environment);
+                console.log('Paddle.Initialize:', typeof Paddle.Initialize);
+                console.log('Paddle.Checkout:', typeof Paddle.Checkout);
+                console.log('Paddle.PricePreview:', typeof Paddle.PricePreview);
+                console.log('Paddle.Status:', Paddle.Status);
+            }
+            
+            updateStatus('Status logged to console. Check browser console (F12).');
+        }
+
+        // Clear console
+        function clearConsole() {
+            console.clear();
+            updateStatus('Console cleared. Ready for new test.');
+        }
+
+        // Wait for Paddle SDK to be ready, then initialize
+        function waitForPaddle() {
+            if (typeof Paddle !== 'undefined') {
+                // Paddle is ready
+                initializePaddleTest();
+            } else {
+                // Wait a bit longer
+                console.log('Waiting for Paddle SDK to load...');
+                setTimeout(waitForPaddle, 100);
+            }
+        }
+
+        // Start when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', waitForPaddle);
+        } else {
+            waitForPaddle();
+        }
+    </script>
+</body>
+</html>

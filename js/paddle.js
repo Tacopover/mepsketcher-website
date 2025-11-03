@@ -484,30 +484,30 @@ class MepSketcherLicensing {
                     <div class="form-row">
                         <div class="form-group">
                             <label for="quote-name">Name *:</label>
-                            <input type="text" id="quote-name" required>
+                            <input type="text" id="quote-name" name="quote-name" required>
                         </div>
                         <div class="form-group">
                             <label for="quote-email">Email *:</label>
-                            <input type="email" id="quote-email" required>
+                            <input type="email" id="quote-email" name="quote-email" required>
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="quote-company">Company *:</label>
-                            <input type="text" id="quote-company" required>
+                            <input type="text" id="quote-company" name="quote-company" required>
                         </div>
                         <div class="form-group">
                             <label for="quote-phone">Phone:</label>
-                            <input type="tel" id="quote-phone">
+                            <input type="tel" id="quote-phone" name="quote-phone">
                         </div>
                     </div>
                     <div class="form-group">
                         <label for="quote-licenses">Number of Licenses *:</label>
-                        <input type="number" id="quote-licenses" min="${PaddleConfig.customQuote.minLicenses}" required placeholder="${PaddleConfig.customQuote.minLicenses}+">
+                        <input type="number" id="quote-licenses" name="quote-licenses" min="${PaddleConfig.customQuote.minLicenses}" required placeholder="${PaddleConfig.customQuote.minLicenses}+">
                     </div>
                     <div class="form-group">
                         <label for="quote-requirements">Special Requirements:</label>
-                        <textarea id="quote-requirements" rows="4" placeholder="Tell us about your specific needs, timeline, training requirements, etc."></textarea>
+                        <textarea id="quote-requirements" name="quote-requirements" rows="4" placeholder="Tell us about your specific needs, timeline, training requirements, etc."></textarea>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" onclick="mepSketcherLicensing.closeModal()">Cancel</button>
@@ -528,55 +528,81 @@ class MepSketcherLicensing {
     /**
      * Process custom quote request
      */
-    processQuoteRequest(form) {
+    async processQuoteRequest(form) {
         const formData = new FormData(form);
+        
+        // Parse and validate licenses number
+        const licensesValue = formData.get('quote-licenses');
+        const parsedLicenses = parseInt(licensesValue);
+        
+        // Validate that we got a valid number
+        if (!licensesValue || isNaN(parsedLicenses) || parsedLicenses < 1) {
+            alert('Please enter a valid number of licenses');
+            return;
+        }
+        
         const quoteData = {
             name: formData.get('quote-name'),
             email: formData.get('quote-email'),
             company: formData.get('quote-company'),
             phone: formData.get('quote-phone') || '',
-            licenses: formData.get('quote-licenses'),
+            licenses: parsedLicenses,
             requirements: formData.get('quote-requirements') || '',
             timestamp: new Date().toISOString()
         };
+        
+        // Debug: Log the data being sent
+        console.log('Sending quote request:', quoteData);
 
         // Show loading state
         const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
         submitBtn.textContent = 'Sending...';
         submitBtn.disabled = true;
 
-        // In a real implementation, send to your backend
-        // For now, simulate with mailto (fallback)
-        this.simulateQuoteProcess(quoteData);
-    }
+        try {
+            // Send quote request to Supabase edge function
+            const response = await fetch(`${SUPABASE_CONFIG.url}/functions/v1/send-quote-request`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+                    'apikey': SUPABASE_CONFIG.anonKey
+                },
+                body: JSON.stringify(quoteData)
+            });
 
-    /**
-     * Simulate quote request process
-     */
-    simulateQuoteProcess(quoteData) {
-        setTimeout(() => {
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to send quote request');
+            }
+
+            // Success!
             this.closeModal();
-            
-            // Create mailto link as fallback
-            const subject = `MepSketcher Enterprise Quote Request - ${quoteData.company}`;
-            const body = `Name: ${quoteData.name}
-Email: ${quoteData.email}
-Company: ${quoteData.company}
-Phone: ${quoteData.phone}
-Licenses Needed: ${quoteData.licenses}
-Requirements: ${quoteData.requirements}
-
-Generated: ${quoteData.timestamp}`;
-            
-            const mailtoLink = `mailto:${PaddleConfig.customQuote.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            
             this.showSuccess('Quote Request Sent!', `
-                <p>Thank you for your interest in MepSketcher Enterprise!</p>
-                <p>Our sales team will contact you within 24 hours at <strong>${quoteData.email}</strong>.</p>
-                <p>For immediate assistance, you can also email us directly:</p>
-                <p><a href="${mailtoLink}" class="btn btn-secondary">Send Email</a></p>
+                <p>Thank you for your interest in MepSketcher!</p>
+                <p>Our sales team will contact you as soon as possible.</p>
             `);
-        }, 1500);
+
+        } catch (error) {
+            console.error('Error sending quote request:', error);
+            
+            // Show error message
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+            
+            // Show error in modal
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.style.cssText = 'background-color: #fee; border: 1px solid #fcc; color: #c33; padding: 12px; border-radius: 4px; margin-top: 15px;';
+            errorDiv.textContent = `Failed to send quote request. Please try again or contact us directly at ${PaddleConfig.customQuote.email}`;
+            
+            const existingError = form.querySelector('.error-message');
+            if (existingError) {
+                existingError.remove();
+            }
+            form.appendChild(errorDiv);
+        }
     }
 
     /**
