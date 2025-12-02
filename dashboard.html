@@ -4,6 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Manage your MepSketcher licenses and account">
+    
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.paddle.com https://cdn.jsdelivr.net;
+        style-src 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com;
+        connect-src 'self' https://*.paddle.com https://sandbox-checkout-service.paddle.com https://checkout-service.paddle.com https://*.supabase.co;
+        img-src 'self' data: https:;
+        font-src 'self' data:;
+        frame-src https://sandbox-buy.paddle.com https://buy.paddle.com;
+    ">
+    
     <title>Dashboard - MepSketcher</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/auth.css">
@@ -136,6 +148,40 @@
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" id="cancelAddMember">Cancel</button>
                         <button type="submit" class="btn btn-primary" id="submitAddMember">Add Member</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Organization Name Modal -->
+    <div id="editOrgNameModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Organization Name</h2>
+                <span class="close">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <form id="editOrgNameForm">
+                    <div class="form-group">
+                        <label for="orgNameInput">Organization Name</label>
+                        <input 
+                            type="text" 
+                            id="orgNameInput" 
+                            required 
+                            placeholder="Enter organization name"
+                            autocomplete="organization">
+                        <small class="form-text">
+                            Choose a clear, descriptive name for your organization.
+                        </small>
+                    </div>
+                    
+                    <div id="editOrgNameMessage" class="message" style="display: none;"></div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelEditOrgName">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="submitEditOrgName">Save Changes</button>
                     </div>
                 </form>
             </div>

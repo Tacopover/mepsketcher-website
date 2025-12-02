@@ -200,6 +200,7 @@ export class MembersManager {
           status: 'active',
           has_license: true, // Assign license when reactivating
           role: role,
+          email: email,
           accepted_at: new Date().toISOString(),
           removed_at: null
         })
@@ -228,6 +229,7 @@ export class MembersManager {
         user_id: userId,
         organization_id: this.organizationId,
         role: role,
+        email: email,
         status: 'active',
         has_license: true, // Assign license to new member
         accepted_at: new Date().toISOString()

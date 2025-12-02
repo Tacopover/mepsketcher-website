@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
         description: `${quantity} MepSketcher License${
           quantity > 1 ? "s" : ""
         } (${remainingDays} days remaining)`,
-        name: `Additional Licenses - ${quantity}x (Pro-rated)`,
+        name: `Additional Licenses - (Pro-rated)`,
         product_id: PRODUCT_ID,
         unit_price: {
           amount: (roundedPrice * 100).toString(), // Convert to cents as string

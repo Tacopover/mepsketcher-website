@@ -43,15 +43,23 @@ BEGIN
   )
   RETURNING id INTO new_org_id;
   
-  -- Create user record with personal org and admin role
-  INSERT INTO users (id, email, organization_id, role, created_at)
+  -- Add user to organization_members as admin
+  -- Note: user_profiles will be created by the signup edge function
+  INSERT INTO organization_members (user_id, organization_id, role, status, has_license, accepted_at, created_at)
   VALUES (
     NEW.id,
-    NEW.email,
     new_org_id,
     'admin',  -- User is admin of their personal trial org
+    'active', -- Immediately active
+    true,     -- Has trial license
+    NOW(),
     NOW()
-  );
+  )
+  ON CONFLICT (user_id, organization_id) 
+  WHERE status = 'active' AND user_id IS NOT NULL
+  DO UPDATE 
+  SET role = EXCLUDED.role,
+      has_license = EXCLUDED.has_license;
   
   -- Create 14-day trial license
   INSERT INTO trial_licenses (user_id, expires_at, created_at)
@@ -59,11 +67,13 @@ BEGIN
     NEW.id,
     NOW() + INTERVAL '14 days',
     NOW()
-  );
+  )
+  ON CONFLICT (user_id) DO NOTHING;
   
   -- Link user to trial (license_id is NULL for trials)
   INSERT INTO user_licenses (user_id, license_id)
-  VALUES (NEW.id, NULL);
+  VALUES (NEW.id, NULL)
+  ON CONFLICT (user_id) DO NOTHING;
   
   RETURN NEW;
 END;

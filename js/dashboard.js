@@ -31,6 +31,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Setup add member modal
     setupAddMemberModal();
+
+    // Setup edit organization name modal
+    setupEditOrgNameModal();
 });
 
 // Load user data
@@ -330,6 +333,11 @@ async function displayOrganizationInfo(org) {
                 <h3 class="org-name">${org.name}</h3>
                 <p class="org-role">Your role: <span class="role-badge ${org.role}">${org.role}</span></p>
             </div>
+            ${isAdmin ? `
+                <button class="btn btn-secondary btn-small" id="editOrgNameBtn">
+                    Edit Name
+                </button>
+            ` : ''}
         </div>
         ${membersHtml}
     `;
@@ -338,6 +346,14 @@ async function displayOrganizationInfo(org) {
 
     // Add event listeners for member management
     if (isAdmin) {
+        // Edit organization name button
+        const editOrgNameBtn = document.getElementById('editOrgNameBtn');
+        if (editOrgNameBtn) {
+            editOrgNameBtn.addEventListener('click', () => {
+                openEditOrgNameModal(org);
+            });
+        }
+
         // Add member button
         const addMemberBtn = document.getElementById('addMemberBtn');
         if (addMemberBtn) {
@@ -493,6 +509,162 @@ function showAddMemberMessage(text, type) {
     messageDiv.className = `message ${type}`;
     messageDiv.style.display = 'block';
 }
+
+// ============================================================================
+// Organization Name Edit Modal Functions
+// ============================================================================
+
+// Setup Edit Organization Name Modal
+function setupEditOrgNameModal() {
+    const modal = document.getElementById('editOrgNameModal');
+    const closeBtn = modal.querySelector('.close');
+    const cancelBtn = document.getElementById('cancelEditOrgName');
+    const form = document.getElementById('editOrgNameForm');
+
+    // Close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            closeEditOrgNameModal();
+        });
+    }
+
+    // Cancel button
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            closeEditOrgNameModal();
+        });
+    }
+
+    // Click outside to close
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeEditOrgNameModal();
+        }
+    });
+
+    // Form submit
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handleEditOrgNameSubmit();
+        });
+    }
+}
+
+// Variable to store current organization being edited
+let currentEditingOrg = null;
+
+// Open Edit Organization Name Modal
+function openEditOrgNameModal(org) {
+    if (!org) {
+        alert('Error: Organization not found');
+        return;
+    }
+
+    // Store the organization for later use
+    currentEditingOrg = org;
+
+    // Set the current name in the input
+    const orgNameInput = document.getElementById('orgNameInput');
+    orgNameInput.value = org.name;
+
+    // Open modal
+    const modal = document.getElementById('editOrgNameModal');
+    modal.style.display = 'flex';
+    
+    // Focus input and select text for easy editing
+    orgNameInput.focus();
+    orgNameInput.select();
+}
+
+// Close Edit Organization Name Modal
+function closeEditOrgNameModal() {
+    const modal = document.getElementById('editOrgNameModal');
+    modal.style.display = 'none';
+    
+    // Reset form
+    document.getElementById('editOrgNameForm').reset();
+    
+    // Hide message
+    const messageDiv = document.getElementById('editOrgNameMessage');
+    messageDiv.style.display = 'none';
+    messageDiv.className = 'message';
+    
+    // Clear current editing org
+    currentEditingOrg = null;
+}
+
+// Handle Edit Organization Name Form Submit
+async function handleEditOrgNameSubmit() {
+    const orgNameInput = document.getElementById('orgNameInput');
+    const submitBtn = document.getElementById('submitEditOrgName');
+    
+    const newName = orgNameInput.value.trim();
+
+    if (!newName) {
+        showEditOrgNameMessage('Please enter an organization name', 'error');
+        return;
+    }
+
+    if (!currentEditingOrg) {
+        showEditOrgNameMessage('Error: Organization not found', 'error');
+        return;
+    }
+
+    // Check if name has actually changed
+    if (newName === currentEditingOrg.name) {
+        showEditOrgNameMessage('No changes made', 'info');
+        setTimeout(() => {
+            closeEditOrgNameModal();
+        }, 1500);
+        return;
+    }
+
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+
+    try {
+        // Update organization name in Supabase
+        const { error } = await authService.supabase
+            .from('organizations')
+            .update({
+                name: newName,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', currentEditingOrg.id);
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        showEditOrgNameMessage('Organization name updated successfully!', 'success');
+        
+        // Reload organization data after 1 second
+        setTimeout(async () => {
+            await loadOrganizationData();
+            closeEditOrgNameModal();
+        }, 1000);
+    } catch (error) {
+        console.error('Error updating organization name:', error);
+        showEditOrgNameMessage(error.message || 'Failed to update organization name', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save Changes';
+    }
+}
+
+// Show message in edit organization name modal
+function showEditOrgNameMessage(text, type) {
+    const messageDiv = document.getElementById('editOrgNameMessage');
+    messageDiv.textContent = text;
+    messageDiv.className = `message ${type}`;
+    messageDiv.style.display = 'block';
+}
+
+// ============================================================================
+// End Organization Name Edit Modal Functions
+// ============================================================================
 
 // Handle adding a member to organization (LEGACY - replaced by modal)
 async function handleAddMember(orgId) {
@@ -720,14 +892,6 @@ function displayLicenses(licenses, organizations, isAdmin = true) {
                                value="5" 
                                placeholder="Enter number of licenses">
                     </div>
-                    <div class="form-group">
-                        <label for="buyLicenseType">License Type</label>
-                        <select id="buyLicenseType" class="form-input">
-                            <option value="starter">Starter</option>
-                            <option value="professional" selected>Professional</option>
-                            <option value="enterprise">Enterprise</option>
-                        </select>
-                    </div>
                     <button class="btn btn-primary" id="buyFirstLicenseBtn">
                         Buy Licenses
                     </button>
@@ -900,17 +1064,81 @@ function createLicenseCard(license, orgName, isAdmin = true) {
 // Handle buying first license
 async function handleBuyFirstLicense() {
     const countInput = document.getElementById('buyLicenseCount');
-    const typeSelect = document.getElementById('buyLicenseType');
-
     const count = parseInt(countInput.value);
-    const type = typeSelect.value;
 
     if (!count || count < 1 || count > 1000) {
         alert('Please enter a valid number of licenses (1-1000)');
         return;
     }
 
-    await performLicensePurchase(count, type);
+    const user = authService.getCurrentUser();
+    if (!user) return;
+
+    // Step 1: Ensure organization exists (copied from performLicensePurchase)
+    const { data: userOrgs } = await authService.supabase
+        .from('organizations')
+        .select('*')
+        .eq('owner_id', user.id)
+        .limit(1);
+
+    let orgId;
+    if (!userOrgs || userOrgs.length === 0) {
+        const orgName = prompt('You need an organization first. Enter organization name:', `${user.email.split('@')[0]}'s Organization`);
+        if (!orgName) return;
+
+        const { data: newOrg, error: orgError } = await authService.supabase
+            .from('organizations')
+            .insert({
+                name: orgName,
+                owner_id: user.id,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (orgError) {
+            alert(`Error creating organization: ${orgError.message}`);
+            return;
+        }
+
+        orgId = newOrg.id;
+
+        // Add user as admin member
+        await authService.supabase
+            .from('organization_members')
+            .insert({
+                organization_id: orgId,
+                user_id: user.id,
+                role: 'admin',
+                status: 'active',
+                has_license: true,
+                accepted_at: new Date().toISOString(),
+                created_at: new Date().toISOString()
+            });
+
+        // Create user profile if needed
+        await authService.supabase
+            .from('user_profiles')
+            .upsert({
+                user_id: user.id,
+                email: user.email,
+                name: user.user_metadata?.name || user.email.split('@')[0],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            });
+    } else {
+        orgId = userOrgs[0].id;
+    }
+
+    // Step 2: Open Paddle checkout (similar to homepage and handleBuyMoreLicenses)
+    if (typeof mepSketcherLicensing === 'undefined' || !mepSketcherLicensing) {
+        alert('Payment system not available. Please try again later.');
+        return;
+    }
+
+    // Pass the license count to Paddle (adjust if Paddle config needs orgId or other params)
+    mepSketcherLicensing.purchaseYearlyLicense(count);
 }
 
 // Handle adding licenses to existing license
@@ -940,7 +1168,7 @@ async function handleAddLicensesToExisting(license, count) {
 }
 
 // Perform license purchase (shared logic)
-async function performLicensePurchase(numberOfLicenses, licenseType) {
+async function performLicensePurchase(numberOfLicenses) {
     const user = authService.getCurrentUser();
     if (!user) return;
 
@@ -1013,7 +1241,7 @@ async function performLicensePurchase(numberOfLicenses, licenseType) {
         .from('organization_licenses')
         .select('*')
         .eq('organization_id', orgId)
-        .single();
+        .maybeSingle();
 
     let result;
 
@@ -1023,7 +1251,7 @@ async function performLicensePurchase(numberOfLicenses, licenseType) {
             .from('organization_licenses')
             .update({
                 total_licenses: existingLicense.total_licenses + parseInt(numberOfLicenses),
-                license_type: licenseType,
+                license_type: 'standard',
                 updated_at: new Date().toISOString()
             })
             .eq('id', existingLicense.id);
@@ -1035,7 +1263,7 @@ async function performLicensePurchase(numberOfLicenses, licenseType) {
                 organization_id: orgId,
                 total_licenses: parseInt(numberOfLicenses),
                 used_licenses: 0,
-                license_type: licenseType,
+                license_type: 'standard',
                 expires_at: expiryDate.toISOString(),
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
@@ -1046,7 +1274,7 @@ async function performLicensePurchase(numberOfLicenses, licenseType) {
         alert(`Error: ${result.error.message}`);
         console.error('License creation error:', result.error);
     } else {
-        alert(`Success! ${numberOfLicenses} ${licenseType} licenses added`);
+        alert(`Success! ${numberOfLicenses} licenses added`);
         // Reload everything
         await loadOrganizationData();
         await loadLicenses();
@@ -1087,17 +1315,17 @@ function handleBuyMoreLicenses(license) {
         return;
     }
 
-    // Prompt for quantity of additional licenses
-    const quantityStr = prompt('How many additional licenses would you like to purchase?', '1');
-    if (!quantityStr) {
-        return; // User cancelled
-    }
+    // // Prompt for quantity of additional licenses
+    // const quantityStr = prompt('How many additional licenses would you like to purchase?', '1');
+    // if (!quantityStr) {
+    //     return; // User cancelled
+    // }
 
-    const quantity = parseInt(quantityStr);
-    if (isNaN(quantity) || quantity < 1 || quantity > 1000) {
-        alert('Please enter a valid number between 1 and 1000');
-        return;
-    }
+    const quantity = 1;
+    // if (isNaN(quantity) || quantity < 1 || quantity > 1000) {
+    //     alert('Please enter a valid number between 1 and 1000');
+    //     return;
+    // }
 
     // Calculate remaining days for prorated pricing
     const expiresAt = new Date(license.expires_at);
@@ -1108,7 +1336,7 @@ function handleBuyMoreLicenses(license) {
         // Show confirmation with prorated info
         const dailyRate = 200 / 365; // $200 per year / 365 days
         const totalCost = Math.ceil(dailyRate * remainingDays * quantity * 100) / 100;
-        const message = `You are purchasing ${quantity} additional license(s) for the remaining ${remainingDays} days of your current license period.\n\nEstimated cost: $${totalCost.toFixed(2)} USD\n\n(This is prorated based on your existing license expiry date)`;
+        const message = `You are purchasing additional license(s) for the remaining ${remainingDays} days of your current license period.\n\nEstimated cost per license: ${totalCost.toFixed(2)} \n\n(This is prorated based on your existing license expiry date)`;
         
         if (!confirm(message)) {
             return; // User cancelled
@@ -1116,7 +1344,7 @@ function handleBuyMoreLicenses(license) {
     }
 
     // Open Paddle checkout for purchasing additional licenses with specified quantity
-    mepSketcherLicensing.purchaseYearlyLicense(quantity);
+    mepSketcherLicensing.purchaseYearlyLicense(1);
 }
 
 // Handle extend license

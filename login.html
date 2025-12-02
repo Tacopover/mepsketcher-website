@@ -4,6 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Sign in to your MepSketcher account">
+    
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.paddle.com https://cdn.jsdelivr.net;
+        style-src 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com;
+        connect-src 'self' https://*.paddle.com https://sandbox-checkout-service.paddle.com https://checkout-service.paddle.com https://*.supabase.co;
+        img-src 'self' data: https:;
+        font-src 'self' data:;
+        frame-src https://sandbox-buy.paddle.com https://buy.paddle.com;
+    ">
+    
     <title>Login - MepSketcher</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/auth.css">

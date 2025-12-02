@@ -3,6 +3,7 @@
 ## Overview
 
 This implementation addresses the trial user workflow by creating a temporary personal organization for every new trial user. This organization is automatically cleaned up when the user either:
+
 1. **Scenario 1**: Purchases a license and creates their own organization
 2. **Scenario 2**: Gets invited to an existing organization by an admin
 
@@ -11,6 +12,7 @@ This implementation addresses the trial user workflow by creating a temporary pe
 ### Database Schema Changes
 
 **New Column: `organizations.is_personal_trial_org`**
+
 - Type: `BOOLEAN`
 - Default: `false`
 - Purpose: Flags organizations that were auto-created for trial users
@@ -20,8 +22,8 @@ This implementation addresses the trial user workflow by creating a temporary pe
 ALTER TABLE organizations
 ADD COLUMN IF NOT EXISTS is_personal_trial_org BOOLEAN DEFAULT false;
 
-CREATE INDEX IF NOT EXISTS idx_organizations_personal_trial 
-ON organizations(is_personal_trial_org) 
+CREATE INDEX IF NOT EXISTS idx_organizations_personal_trial
+ON organizations(is_personal_trial_org)
 WHERE is_personal_trial_org = true;
 ```
 
@@ -41,14 +43,14 @@ When a new user signs up for a trial:
 organizations:
   name: "Personal Trial - user@example.com"
   is_personal_trial_org: true
-  
+
 users:
   organization_id: <personal_org_id>
   role: 'admin'
-  
+
 trial_licenses:
   expires_at: NOW() + 14 days
-  
+
 user_licenses:
   license_id: NULL  -- NULL indicates trial
 ```
@@ -56,6 +58,7 @@ user_licenses:
 ## Scenario 1: Trial User Purchases License
 
 ### Flow
+
 1. User clicks "Buy License" on website
 2. User is authenticated (already has trial account)
 3. Paddle checkout opens
@@ -92,7 +95,7 @@ const { data: newOrg } = await supabase
     name: organizationName || `${userEmail}'s Organization`,
     owner_id: userId,
     is_trial: false,
-    is_personal_trial_org: false,  // This is a real org
+    is_personal_trial_org: false, // This is a real org
   })
   .select()
   .single();
@@ -116,6 +119,7 @@ if (oldPersonalOrgId) {
 ## Scenario 2: Trial User Invited to Existing Org
 
 ### Flow
+
 1. Admin discovers trial user (coworker) exists
 2. Admin calls `assign-trial-user` Edge Function
 3. Function validates:
@@ -133,6 +137,7 @@ if (oldPersonalOrgId) {
 **API Endpoint**: `POST /functions/v1/assign-trial-user`
 
 **Request Body**:
+
 ```json
 {
   "trial_user_email": "coworker@company.com",
@@ -143,6 +148,7 @@ if (oldPersonalOrgId) {
 **Authorization**: Requires Bearer token (authenticated admin)
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -154,6 +160,7 @@ if (oldPersonalOrgId) {
 ```
 
 **Key Logic**:
+
 ```typescript
 // Verify user is in personal trial org
 if (!userOrg?.is_personal_trial_org) {
@@ -186,6 +193,7 @@ await supabase
 ## Cleanup: Orphaned Organizations
 
 ### Purpose
+
 Handles edge cases where personal trial orgs aren't properly deleted (network errors, crashes, etc.)
 
 **New File**: `supabase/functions/cleanup-orphaned-orgs/index.ts`
@@ -197,6 +205,7 @@ Handles edge cases where personal trial orgs aren't properly deleted (network er
 **Usage**: Run periodically via cron job or manually
 
 **Logic**:
+
 ```typescript
 // Find personal trial orgs with no users
 const { data: orphanedOrgs } = await supabase
@@ -222,12 +231,14 @@ for (const org of orgsToDelete) {
 ## Deployment Steps
 
 ### 1. Run Database Migration
+
 ```bash
 # In Supabase SQL Editor, run:
 DATABASE_PERSONAL_TRIAL_ORG.sql
 ```
 
 ### 2. Deploy Edge Functions
+
 ```bash
 # Deploy assign-trial-user function
 npx supabase functions deploy assign-trial-user
@@ -237,6 +248,7 @@ npx supabase functions deploy cleanup-orphaned-orgs
 ```
 
 ### 3. Update Existing Paddle Webhook
+
 ```bash
 # Redeploy with new personal org cleanup logic
 npx supabase functions deploy paddle-webhook
@@ -251,15 +263,17 @@ Add to dashboard JavaScript:
  * Assign a trial user to the organization
  */
 async function assignTrialUserToOrganization(trialUserEmail, licenseId) {
-  const { data: { session } } = await supabase.auth.getSession();
-  
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   const response = await fetch(
     `${supabase.supabaseUrl}/functions/v1/assign-trial-user`,
     {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         trial_user_email: trialUserEmail,
@@ -291,8 +305,9 @@ curl -X POST \
 ## Testing
 
 ### Test Scenario 1: Trial → Purchase
+
 1. Sign up for trial
-2. Verify personal trial org created: 
+2. Verify personal trial org created:
    ```sql
    SELECT * FROM organizations WHERE is_personal_trial_org = true;
    ```
@@ -300,6 +315,7 @@ curl -X POST \
 4. Verify personal org deleted and new org created
 
 ### Test Scenario 2: Trial → Invited
+
 1. User A signs up for trial (gets personal org)
 2. User B (admin) buys license (has real org)
 3. User B calls `assign-trial-user` with User A's email
@@ -309,6 +325,7 @@ curl -X POST \
    - User A assigned to license
 
 ### Test Cleanup Function
+
 1. Create orphaned personal org manually:
    ```sql
    INSERT INTO organizations (name, is_personal_trial_org)
@@ -322,11 +339,13 @@ curl -X POST \
 If issues arise, rollback in this order:
 
 1. **Disable trigger** (prevents new personal orgs):
+
    ```sql
    DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
    ```
 
 2. **Revert paddle-webhook** to previous version:
+
    ```bash
    git checkout HEAD~1 supabase/functions/paddle-webhook/index.ts
    npx supabase functions deploy paddle-webhook
@@ -356,17 +375,20 @@ If issues arise, rollback in this order:
 ## Files Changed/Created
 
 ### Created
+
 - `DATABASE_PERSONAL_TRIAL_ORG.sql` - Database migration
 - `supabase/functions/assign-trial-user/index.ts` - Scenario 2 handler
 - `supabase/functions/cleanup-orphaned-orgs/index.ts` - Cleanup function
 - `docs/PERSONAL_TRIAL_ORG_IMPLEMENTATION.md` - This file
 
 ### Modified
+
 - `supabase/functions/paddle-webhook/index.ts` - Added personal org cleanup in Scenario 1
 
 ## Support
 
 For questions or issues:
+
 - Check logs in Supabase Dashboard → Edge Functions
 - Verify database state with SQL queries
 - Run cleanup function if orphaned orgs suspected

@@ -173,13 +173,18 @@ function debugPendingActions() {
     }
 }
 
-// Make functions available globally for debugging
-window.PaddleConfig = PaddleConfig;
-window.testPaddleCheckout = testPaddleCheckout;
-window.testMinimalCheckout = testMinimalCheckout;
-window.initializePaddle = initializePaddle;
-window.checkPaddleStatus = checkPaddleStatus;
-window.debugPendingActions = debugPendingActions;
+// Make functions available globally for debugging (only in development)
+if (window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' || 
+    window.location.hostname.includes('github.io')) {
+    window.PaddleConfig = PaddleConfig;
+    window.testPaddleCheckout = testPaddleCheckout;
+    window.testMinimalCheckout = testMinimalCheckout;
+    window.initializePaddle = initializePaddle;
+    window.checkPaddleStatus = checkPaddleStatus;
+    window.debugPendingActions = debugPendingActions;
+    console.log('🔧 Paddle debug functions enabled (development mode)');
+}
 
 // Simple initialization function that matches test page
 function initializePaddleSimple() {

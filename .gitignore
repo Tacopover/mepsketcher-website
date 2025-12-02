@@ -146,6 +146,13 @@ config.local.js
 secrets.json
 supabase-config.local.js
 
+# Test and development files
+test-jwt-claims.html
+paddle-test.html
+js/test-jwt-claims.js
+*.test.html
+*-test.html
+
 # ========================================== 
 # Testing
 # ==========================================
@@ -189,3 +196,15 @@ _drafts/
 # Private notes
 NOTES.md
 TODO.private.md
+DATABASE_PERSONAL_TRIAL_ORG_OPTION_A.sql
+DATABASE_PERSONAL_TRIAL_ORG.sql
+DATABASE_PERSONAL_TRIAL_ORG.sql
+docs/FRONTEND_TRIAL_FLOW_ALIGNMENT.md
+docs/OPTION_A_DEPLOYMENT_GUIDE.md
+docs/OPTION_A_IMPLEMENTATION_SUMMARY.md
+docs/PERSONAL_TRIAL_ORG_IMPLEMENTATION.md
+docs/PERSONAL_TRIAL_ORG_IMPLEMENTATION.md
+DATABASE_PERSONAL_TRIAL_ORG.sql
+docs/PERSONAL_TRIAL_ORG_IMPLEMENTATION.md
+docs/TRIAL_FLOW_SCHEMA_ANALYSIS.md
+docs/TRIAL_USER_DEPLOYMENT_CHECKLIST.md

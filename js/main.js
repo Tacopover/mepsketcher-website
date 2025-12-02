@@ -1,5 +1,12 @@
 // MepSketcher Website JavaScript
 
+// Enforce HTTPS in production
+if (location.protocol !== 'https:' && 
+    location.hostname !== 'localhost' && 
+    location.hostname !== '127.0.0.1') {
+    location.replace(`https:${location.href.substring(location.protocol.length)}`);
+}
+
 // Mobile Navigation Toggle
 document.addEventListener('DOMContentLoaded', function() {
     const hamburger = document.querySelector('.hamburger');

@@ -504,10 +504,15 @@ function inspectLocalStorage() {
     console.log('=== END INSPECTION ===');
 }
 
-// Make debug functions available globally
-window.debugAuthStatus = debugAuthStatus;
-window.forceLogout = forceLogout;
-window.inspectLocalStorage = inspectLocalStorage;
+// Make debug functions available globally (only in development)
+if (window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' || 
+    window.location.hostname.includes('github.io')) {
+    window.debugAuthStatus = debugAuthStatus;
+    window.forceLogout = forceLogout;
+    window.inspectLocalStorage = inspectLocalStorage;
+    console.log('🔧 Debug functions enabled (development mode)');
+}
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {

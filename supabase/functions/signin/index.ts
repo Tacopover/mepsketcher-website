@@ -8,6 +8,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/**
+ * Validate email format
+ */
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
 interface SignInRequest {
   email: string;
   password: string;
@@ -66,6 +74,20 @@ Deno.serve(async (req) => {
         JSON.stringify({
           success: false,
           error: "Email and password are required",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Invalid email format",
         }),
         {
           status: 400,
@@ -189,6 +211,7 @@ Deno.serve(async (req) => {
                 console.log("User added to existing organization");
               } else {
                 // Create new organization
+                // Mark as personal trial org since this came from pending_organizations (single-user signup)
                 const { data: newOrg, error: orgError } = await supabaseAdmin
                   .from("organizations")
                   .insert({
@@ -198,6 +221,7 @@ Deno.serve(async (req) => {
                     trial_expires_at: new Date(
                       Date.now() + 14 * 24 * 60 * 60 * 1000
                     ).toISOString(),
+                    is_personal_trial_org: true, // Mark for cleanup if user joins another org
                   })
                   .select()
                   .single();
@@ -208,7 +232,9 @@ Deno.serve(async (req) => {
                 }
 
                 organizationId = newOrg.id;
-                console.log(`Created new organization: ${organizationId}`);
+                console.log(
+                  `Created new personal trial organization: ${organizationId}`
+                );
 
                 // Add user as owner
                 const { error: memberError } = await supabaseAdmin

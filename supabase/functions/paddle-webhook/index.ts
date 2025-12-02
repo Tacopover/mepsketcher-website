@@ -51,7 +51,16 @@ async function verifyPaddleSignature(
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
-  return calculatedSignature === signature;
+  // Use timing-safe comparison to prevent timing attacks
+  if (calculatedSignature.length !== signature.length) {
+    return false;
+  }
+
+  // Constant-time comparison
+  const calculatedBuffer = new TextEncoder().encode(calculatedSignature);
+  const signatureBuffer = new TextEncoder().encode(signature);
+
+  return crypto.subtle.timingSafeEqual(calculatedBuffer, signatureBuffer);
 }
 
 Deno.serve(async (req) => {
@@ -154,29 +163,40 @@ Deno.serve(async (req) => {
       // 2. If still no organization, check for personal trial org
       if (!organizationId) {
         console.log("No organization found, checking for personal trial org");
-        
-        // Check if user has a personal trial organization
-        const { data: existingUser } = await supabase
-          .from("users")
-          .select("organization_id, organizations(id, name, is_personal_trial_org)")
-          .eq("id", userId)
-          .single();
 
-        if (existingUser && existingUser.organizations) {
-          const userOrg = Array.isArray(existingUser.organizations)
-            ? existingUser.organizations[0]
-            : existingUser.organizations;
-          
-          if (userOrg?.is_personal_trial_org) {
-            console.log("Found personal trial org, will replace with real org:", userOrg.id);
-            oldPersonalOrgId = userOrg.id;
+        // Check if user has a personal trial organization via organization_members
+        const { data: existingMemberships } = await supabase
+          .from("organization_members")
+          .select(
+            "organization_id, organizations(id, name, is_personal_trial_org)"
+          )
+          .eq("user_id", userId)
+          .eq("role", "owner")
+          .eq("status", "active");
+
+        if (existingMemberships && existingMemberships.length > 0) {
+          // Find personal trial org
+          const personalTrialMembership = existingMemberships.find(
+            (m: any) => m.organizations?.is_personal_trial_org === true
+          );
+
+          if (
+            personalTrialMembership &&
+            personalTrialMembership.organizations
+          ) {
+            console.log(
+              "Found personal trial org, will replace with real org:",
+              personalTrialMembership.organizations.id
+            );
+            oldPersonalOrgId = personalTrialMembership.organizations.id;
           }
         }
 
         // Get organization name from custom_data or use default
-        const organizationName = custom_data?.organizationName || 
-                                custom_data?.organization_name ||
-                                `${userEmail}'s Organization`;
+        const organizationName =
+          custom_data?.organizationName ||
+          custom_data?.organization_name ||
+          `${userEmail}'s Organization`;
 
         console.log("Creating new organization:", organizationName);
         const { data: newOrg, error: orgError } = await supabase
@@ -198,17 +218,21 @@ Deno.serve(async (req) => {
         organizationId = newOrg.id;
         console.log("Created new organization:", organizationId);
 
-        // If user had a personal trial org, update their organization_id
+        // If user had a personal trial org, remove them from it
         if (oldPersonalOrgId) {
-          console.log("Updating user's organization from personal trial org to new org");
-          const { error: updateUserError } = await supabase
-            .from("users")
-            .update({ organization_id: organizationId })
-            .eq("id", userId);
+          console.log(
+            "Removing user from personal trial org and marking it for cleanup"
+          );
+          // Update their membership status to inactive in the old org
+          const { error: updateMemberError } = await supabase
+            .from("organization_members")
+            .update({ status: "inactive" })
+            .eq("user_id", userId)
+            .eq("organization_id", oldPersonalOrgId);
 
-          if (updateUserError) {
-            console.error("Error updating user organization:", updateUserError);
-            // Non-fatal, continue
+          if (updateMemberError) {
+            console.error("Error updating old membership:", updateMemberError);
+            // Non-fatal, continue - cleanup function will handle orphaned orgs
           }
         }
       }
@@ -232,35 +256,54 @@ Deno.serve(async (req) => {
           "User not in organization_members, attempting to add as admin"
         );
 
-        // Use upsert instead of insert to handle race conditions
+        // First, try to insert the new membership
         const { error: memberError } = await supabase
           .from("organization_members")
-          .upsert(
-            {
-              user_id: userId,
-              organization_id: organizationId,
-              role: "admin",
-              status: "active",
-              email: userEmail,
-              has_license: true,
-              accepted_at: new Date().toISOString(),
-            },
-            {
-              onConflict: "organization_id,user_id",
-              ignoreDuplicates: true,
-            }
-          );
+          .insert({
+            user_id: userId,
+            organization_id: organizationId,
+            role: "admin",
+            status: "active",
+            email: userEmail,
+            has_license: true,
+            accepted_at: new Date().toISOString(),
+          });
 
         if (memberError) {
-          console.error(
-            "Error adding user to organization_members:",
-            memberError
-          );
-          // Don't throw - if user is already there, that's fine
-          // Only log the error and continue
-          console.log(
-            "Continuing with license operations despite membership error"
-          );
+          // Check if it's a duplicate key error (user already exists)
+          if (memberError.code === "23505") {
+            console.log(
+              "User already in organization_members (duplicate key), updating instead"
+            );
+
+            // Update the existing record
+            const { error: updateError } = await supabase
+              .from("organization_members")
+              .update({
+                role: "admin",
+                status: "active",
+                has_license: true,
+                accepted_at: new Date().toISOString(),
+              })
+              .eq("user_id", userId)
+              .eq("organization_id", organizationId);
+
+            if (updateError) {
+              console.error("Error updating existing membership:", updateError);
+              // Don't throw - this is non-fatal for license operations
+            } else {
+              console.log("Successfully updated existing membership");
+            }
+          } else {
+            console.error(
+              "Error adding user to organization_members:",
+              memberError
+            );
+            // Don't throw - log and continue with license operations
+            console.log(
+              "Continuing with license operations despite membership error"
+            );
+          }
         } else {
           console.log("Successfully added user to organization_members");
         }
@@ -268,6 +311,21 @@ Deno.serve(async (req) => {
         console.log(
           `User already in organization_members with role: ${membershipCheck.role}`
         );
+
+        // Update has_license flag if needed
+        if (!membershipCheck.has_license) {
+          console.log("Updating has_license flag for existing member");
+          const { error: updateLicenseError } = await supabase
+            .from("organization_members")
+            .update({ has_license: true })
+            .eq("user_id", userId)
+            .eq("organization_id", organizationId);
+
+          if (updateLicenseError) {
+            console.error("Error updating has_license:", updateLicenseError);
+            // Non-fatal
+          }
+        }
       }
 
       // 4. Check if organization_licenses entry already exists
@@ -376,7 +434,10 @@ Deno.serve(async (req) => {
 
         // Delete old personal trial organization if it exists
         if (oldPersonalOrgId) {
-          console.log("Deleting old personal trial organization:", oldPersonalOrgId);
+          console.log(
+            "Deleting old personal trial organization:",
+            oldPersonalOrgId
+          );
           const { error: deleteOrgError } = await supabase
             .from("organizations")
             .delete()

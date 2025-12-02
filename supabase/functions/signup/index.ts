@@ -42,6 +42,21 @@ async function hashToken(token: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * Validate email format
+ */
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+/**
+ * Validate password strength (minimum 8 characters)
+ */
+function isValidPassword(password: string): boolean {
+  return password && password.length >= 8;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -74,6 +89,34 @@ Deno.serve(async (req) => {
         JSON.stringify({
           success: false,
           error: "Email, password, and name are required",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Validate email format
+    if (!isValidEmail(email)) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Invalid email format",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Validate password strength
+    if (!isValidPassword(password)) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Password must be at least 8 characters long",
         }),
         {
           status: 400,
@@ -301,11 +344,13 @@ Deno.serve(async (req) => {
           console.log("User added to existing organization");
         } else {
           // Create new organization
+          // Mark as personal trial org since this is a single-user signup
           const { data: newOrg, error: orgError } = await supabaseAdmin
             .from("organizations")
             .insert({
               name: orgName,
               owner_id: userId,
+              is_personal_trial_org: true, // Mark for cleanup if user joins another org
             })
             .select()
             .single();
@@ -318,7 +363,9 @@ Deno.serve(async (req) => {
           }
 
           organizationId = newOrg.id;
-          console.log(`Created new organization: ${organizationId}`);
+          console.log(
+            `Created new personal trial organization: ${organizationId}`
+          );
 
           // Add user as admin
           const { error: memberError } = await supabaseAdmin

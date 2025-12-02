@@ -74,100 +74,63 @@ class MepSketcherLicensing {
     }
 
     /**
-     * Start free trial - handles trial license registration
+     * Start free trial - redirects to login/signup
      */
-    startTrial() {
-        if (!this.isInitialized) {
-            console.error('Paddle not initialized');
-            this.showError('Unable to start trial. Please try again later.');
+    async startTrial() {
+        // Check if user is authenticated
+        if (typeof window.supabase === 'undefined') {
+            console.error('Supabase not initialized');
+            this.showError('Authentication system unavailable. Please try again later.');
             return;
         }
 
-        // For trials, we might want to collect email first
-        this.showTrialModal();
+        console.log('Checking authentication for trial...');
+        
+        // Get current user
+        const { data: { user }, error: userError } = await window.supabase.auth.getUser();
+        
+        if (userError || !user) {
+            console.log('User not authenticated, showing login dialog for trial');
+            // Show login dialog with trial context
+            this.showLoginDialog('trial');
+            return;
+        }
+
+        console.log('User is authenticated:', user.email);
+        
+        // User is already authenticated and has trial access
+        // Redirect to dashboard where they can download the app
+        this.showTrialSuccess(user.email);
     }
 
     /**
-     * Show trial registration modal
+     * Show trial success message for authenticated users
      */
-    showTrialModal() {
-        // Create a simple modal to collect email for trial
-        const modal = this.createModal('Start Your Free Trial', `
-            <div class="trial-form">
-                <p>Get instant access to MepSketcher for 30 days.</p>
-                <form id="trial-form">
-                    <div class="form-group">
-                        <label for="trial-email">Email Address:</label>
-                        <input type="email" id="trial-email" required placeholder="your@email.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="trial-name">Name:</label>
-                        <input type="text" id="trial-name" required placeholder="Your Name">
-                    </div>
-                    <div class="form-group">
-                        <label for="trial-company">Company (Optional):</label>
-                        <input type="text" id="trial-company" placeholder="Your Company">
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="mepSketcherLicensing.closeModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Start Free Trial</button>
-                    </div>
-                </form>
-            </div>
-        `);
-
-        // Handle form submission
-        const form = modal.querySelector('#trial-form');
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.processTrial(form);
-        });
-    }
-
-    /**
-     * Process trial registration
-     */
-    processTrial(form) {
-        const formData = new FormData(form);
-        const trialData = {
-            email: formData.get('trial-email'),
-            name: formData.get('trial-name'),
-            company: formData.get('trial-company') || '',
-            product: 'trial',
-            timestamp: new Date().toISOString()
-        };
-
-        // In a real implementation, you'd send this to your backend
-        // For now, we'll simulate the process
-        this.simulateTrialProcess(trialData);
-    }
-
-    /**
-     * Simulate trial process (replace with actual backend call)
-     */
-    simulateTrialProcess(trialData) {
-        // Show loading state
-        const form = document.getElementById('trial-form');
-        const submitBtn = form.querySelector('button[type="submit"]');
-        submitBtn.textContent = 'Processing...';
-        submitBtn.disabled = true;
-
-        // Simulate API call
-        setTimeout(() => {
-            this.closeModal();
-            this.showSuccess('Trial Started!', `
-                <p>Your 30-day free trial has been activated!</p>
-                <p>Download instructions have been sent to <strong>${trialData.email}</strong>.</p>
-                <div class="trial-info">
-                    <h4>Next Steps:</h4>
-                    <ol>
-                        <li>Check your email for the download link</li>
-                        <li>Install MepSketcher</li>
-                        <li>Use your email to activate the trial</li>
+    showTrialSuccess(userEmail) {
+        this.showSuccess('Trial Active!', `
+            <div class="trial-success-message" style="text-align: center;">
+                <p style="margin-bottom: 20px; font-size: 16px;">
+                    Your 14-day free trial is active for <strong>${userEmail}</strong>
+                </p>
+                <p style="margin-bottom: 20px; color: #666;">
+                    You can now download and install MepSketcher from your dashboard.
+                </p>
+                <div style="margin: 30px 0;">
+                    <a href="/dashboard.html" class="btn btn-primary" style="text-decoration: none; padding: 12px 32px; background: #007bff; color: white; border-radius: 4px; display: inline-block; font-weight: 600;">
+                        Go to Dashboard
+                    </a>
+                </div>
+                <div class="trial-info" style="text-align: left; background: #f8f9fa; padding: 20px; border-radius: 4px; margin-top: 20px;">
+                    <h4 style="margin: 0 0 15px; color: #333;">Next Steps:</h4>
+                    <ol style="margin: 0; padding-left: 20px; color: #666;">
+                        <li style="margin-bottom: 8px;">Go to your dashboard</li>
+                        <li style="margin-bottom: 8px;">Download the MepSketcher installer</li>
+                        <li style="margin-bottom: 8px;">Install and launch the application</li>
+                        <li>Sign in with your account to activate your trial</li>
                     </ol>
                 </div>
-            `);
-        }, 2000);
+            </div>
+        `);
     }
 
     /**
@@ -689,19 +652,27 @@ class MepSketcherLicensing {
     }
 
     /**
-     * Show login dialog when user tries to purchase without being authenticated
+     * Show login dialog when user tries to purchase or start trial without being authenticated
+     * @param {string} context - 'trial' or 'purchase' to customize the message
      */
-    showLoginDialog() {
-        this.createModal('Authentication Required', `
+    showLoginDialog(context = 'purchase') {
+        const isTrial = context === 'trial';
+        const title = isTrial ? 'Start Your Free Trial' : 'Authentication Required';
+        const message = isTrial 
+            ? 'Please sign in or create an account to start your 14-day free trial.'
+            : 'Please sign in or create an account to purchase a license.';
+        const redirectUrl = isTrial ? '/login.html?action=trial' : '/login.html';
+        
+        this.createModal(title, `
             <div class="login-required-message" style="text-align: center; padding: 20px;">
                 <p style="margin-bottom: 20px; font-size: 16px;">
-                    Please sign in or create an account to purchase a license.
+                    ${message}
                 </p>
                 <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                    <a href="/login.html" class="btn btn-primary" style="text-decoration: none; padding: 12px 24px; background: #007bff; color: white; border-radius: 4px; display: inline-block;">
+                    <a href="${redirectUrl}" class="btn btn-primary" style="text-decoration: none; padding: 12px 24px; background: #007bff; color: white; border-radius: 4px; display: inline-block;">
                         Sign In
                     </a>
-                    <a href="/login.html#signup" class="btn btn-secondary" style="text-decoration: none; padding: 12px 24px; background: #6c757d; color: white; border-radius: 4px; display: inline-block;">
+                    <a href="${redirectUrl}#signup" class="btn btn-secondary" style="text-decoration: none; padding: 12px 24px; background: #6c757d; color: white; border-radius: 4px; display: inline-block;">
                         Sign Up
                     </a>
                 </div>

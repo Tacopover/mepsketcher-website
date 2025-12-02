@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const invitationToken = urlParams.get('invitation_token');
     const invitedEmail = urlParams.get('email');
     const invitedOrganization = urlParams.get('organization');
+    const actionParam = urlParams.get('action'); // Check for action=trial
 
     // Get tab buttons
     const tabButtons = document.querySelectorAll('.auth-tab');
@@ -23,6 +24,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // Get forgot password link
     const forgotPasswordLink = document.getElementById('forgotPasswordLink');
     const backToLoginBtn = document.getElementById('backToLogin');
+
+    // Handle trial signup (action=trial in URL)
+    if (actionParam === 'trial') {
+        // Switch to signup tab
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        tabButtons[1].classList.add('active'); // Signup is second tab
+        
+        loginForm.classList.remove('active');
+        resetPasswordForm.classList.remove('active');
+        signupForm.classList.add('active');
+
+        // Hide organization name field for trial users
+        const orgInput = document.getElementById('organizationName');
+        const orgGroup = orgInput.closest('.form-group');
+        if (orgGroup) {
+            orgGroup.style.display = 'none';
+            // Remove required attribute since field is hidden
+            orgInput.removeAttribute('required');
+        }
+
+        // Show trial message
+        showMessage(signupMessage, '🎉 Start your 14-day free trial! No credit card required.', 'info');
+    }
 
     // If invitation token exists, switch to signup tab and pre-fill email & organization
     if (invitationToken && invitedEmail && invitedOrganization) {
@@ -76,6 +100,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 loginForm.classList.add('active');
             } else if (targetTab === 'signup') {
                 signupForm.classList.add('active');
+                
+                // If not a trial signup, make sure organization field is visible and required
+                if (actionParam !== 'trial') {
+                    const orgInput = document.getElementById('organizationName');
+                    const orgGroup = orgInput.closest('.form-group');
+                    if (orgGroup) {
+                        orgGroup.style.display = '';
+                        orgInput.setAttribute('required', '');
+                    }
+                }
             }
             
             // Clear messages
@@ -143,7 +177,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const name = document.getElementById('signupName').value;
         const email = document.getElementById('signupEmail').value;
-        const organizationName = document.getElementById('organizationName').value;
+        const organizationNameInput = document.getElementById('organizationName');
+        // For trial signups, organization name field is hidden, so use null
+        const organizationName = organizationNameInput.closest('.form-group').style.display === 'none' 
+            ? null 
+            : organizationNameInput.value;
         const password = document.getElementById('signupPassword').value;
         const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
         const agreeTerms = document.getElementById('agreeTerms').checked;
@@ -164,13 +202,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        showMessage(signupMessage, 'Creating account...', 'info');
+        // If this is a trial signup, show appropriate message
+        const isTrial = actionParam === 'trial';
+        showMessage(signupMessage, isTrial ? 'Creating your trial account...' : 'Creating account...', 'info');
         
         // Pass invitation token if present
         const result = await authService.signUp(email, password, name, organizationName, invitationToken);
         
         if (result.success) {
-            showMessage(signupMessage, 'Account created successfully! Please check your email to verify your account.', 'success');
+            if (isTrial) {
+                showMessage(signupMessage, '🎉 Trial account created! Please check your email to verify your account and start your 14-day free trial.', 'success');
+            } else {
+                showMessage(signupMessage, 'Account created successfully! Please check your email to verify your account.', 'success');
+            }
             
             // Clear form
             signupForm.reset();
