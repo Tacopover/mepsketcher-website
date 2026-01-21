@@ -55,11 +55,11 @@ async function verifyPaddleSignature(
   if (calculatedSignature.length !== signature.length) {
     return false;
   }
-  
+
   // Constant-time comparison
   const calculatedBuffer = new TextEncoder().encode(calculatedSignature);
   const signatureBuffer = new TextEncoder().encode(signature);
-  
+
   return timingSafeEqual(calculatedBuffer.buffer, signatureBuffer.buffer);
 }
 
@@ -77,7 +77,8 @@ function timingSafeEqual(a: ArrayBuffer, b: ArrayBuffer): boolean {
     diff |= view1.getUint8(i) ^ view2.getUint8(i);
   }
   return diff === 0;
-}Deno.serve(async (req) => {
+}
+Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

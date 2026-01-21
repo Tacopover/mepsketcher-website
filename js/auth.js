@@ -324,6 +324,28 @@ class AuthService {
         }
     }
 
+    // Update password (called from reset-password.html)
+    async updatePassword(newPassword) {
+        try {
+            const { data, error } = await this.supabase.auth.updateUser({
+                password: newPassword
+            });
+
+            if (error) throw error;
+
+            return {
+                success: true,
+                message: 'Password updated successfully!'
+            };
+        } catch (error) {
+            console.error('Update password error:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
     // Clear all Supabase authentication data
     clearAllSupabaseData() {
         console.log('Clearing all Supabase authentication data...');
