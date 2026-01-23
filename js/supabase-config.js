@@ -8,9 +8,12 @@ const DEFAULT_CONFIG = {
     anonKey: 'YOUR_SUPABASE_ANON_KEY_HERE'
 };
 
-// This will be replaced by the actual config from supabase-config.local.js
-// Make sure to create supabase-config.local.js based on supabase-config.local.js.example
-let SUPABASE_CONFIG = DEFAULT_CONFIG;
+// SUPABASE_CONFIG should already be declared in supabase-config.local.js
+// This file only provides the fallback and helper functions
+// If supabase-config.local.js is missing, we need to use window to avoid redeclaration
+if (typeof SUPABASE_CONFIG === 'undefined') {
+    window.SUPABASE_CONFIG = DEFAULT_CONFIG;
+}
 
 // Note: The actual configuration is loaded from supabase-config.local.js
 // which should be loaded BEFORE this file in your HTML

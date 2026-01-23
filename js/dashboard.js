@@ -6,6 +6,9 @@ import { MembersManager } from './members-manager.js';
 // Global members manager instance
 let membersManager = null;
 
+// Global license expiration manager instance
+let licenseExpirationManager = null;
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Wait for auth service to initialize
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -768,15 +771,36 @@ async function loadLicenses() {
         // Check if user is admin (organization owner)
         const isAdmin = userOrgs && userOrgs.length > 0;
 
+        let orgId = null;
+        
         if (isAdmin) {
             // Admin view - show full license management
             await loadAdminLicenses(user, userOrgs);
+            orgId = userOrgs[0]?.id;
         } else {
             // Member view - show only personal license status
-            await loadMemberLicenseStatus(user);
+            const memberOrgId = await loadMemberLicenseStatus(user);
+            orgId = memberOrgId;
+        }
+        
+        // Initialize license expiration manager if user has an organization
+        if (orgId) {
+            licenseExpirationManager = new LicenseExpirationManager(authService.supabase, orgId);
+            await licenseExpirationManager.initialize();
+        } else {
+            // No organization - show no license status in Account Overview
+            updateAccountOverviewNoLicense();
         }
     } catch (error) {
         console.error('Error in loadLicenses:', error);
+    }
+}
+
+// Update Account Overview section when user has no license
+function updateAccountOverviewNoLicense() {
+    const statusElement = document.getElementById('licenseStatus');
+    if (statusElement) {
+        statusElement.innerHTML = '<span style="color: #6c757d;">No organization or license</span>';
     }
 }
 
@@ -839,19 +863,18 @@ async function loadMemberLicenseStatus(user) {
         .select('organization_id, has_license, role')
         .eq('user_id', user.id)
         .eq('status', 'active') // Only load active membership
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no rows
 
     if (memberError) {
         console.error('Error loading member license status:', memberError);
-        // Show no license state
         displayMemberLicenseStatus(null, null);
-        return;
+        return null;
     }
 
     if (!membership) {
         // No membership found
         displayMemberLicenseStatus(null, null);
-        return;
+        return null;
     }
 
     // Get organization license details
@@ -859,7 +882,7 @@ async function loadMemberLicenseStatus(user) {
         .from('organization_licenses')
         .select('license_type, expires_at')
         .eq('organization_id', membership.organization_id)
-        .single();
+        .maybeSingle(); // Use maybeSingle to avoid errors
 
     if (licenseError) {
         console.error('Error loading organization license:', licenseError);
@@ -867,6 +890,9 @@ async function loadMemberLicenseStatus(user) {
 
     // Display member license card
     displayMemberLicenseStatus(membership, orgLicense);
+    
+    // Return organization ID for license expiration manager
+    return membership.organization_id;
 }
 
 // Display licenses (Admin view)
