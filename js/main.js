@@ -1,5 +1,12 @@
 // MepSketcher Website JavaScript
 
+// Enforce HTTPS in production
+if (location.protocol !== 'https:' && 
+    location.hostname !== 'localhost' && 
+    location.hostname !== '127.0.0.1') {
+    location.replace(`https:${location.href.substring(location.protocol.length)}`);
+}
+
 // Mobile Navigation Toggle
 document.addEventListener('DOMContentLoaded', function() {
     const hamburger = document.querySelector('.hamburger');
@@ -115,7 +122,35 @@ document.addEventListener('DOMContentLoaded', function() {
     if (copyrightElement && copyrightElement.textContent.includes('2025')) {
         copyrightElement.textContent = copyrightElement.textContent.replace('2025', currentYear);
     }
+
+    // Wait for auth service to be ready before updating navigation
+    document.addEventListener('authReady', updateNavigationForAuth);
+    
+    // Listen for auth state changes to update navigation
+    document.addEventListener('authStateChanged', updateNavigationForAuth);
 });
+
+// Update navigation based on authentication status
+function updateNavigationForAuth() {
+    const signInLink = document.querySelector('a[href="login.html"]');
+    
+    if (!signInLink) return; // Not on a page with sign in link
+    
+    // Check if user is authenticated
+    const isAuthenticated = typeof authService !== 'undefined' && authService.isAuthenticated();
+    
+    if (isAuthenticated) {
+        // User is logged in - change to "My Profile"
+        signInLink.textContent = 'Dashboard';
+        signInLink.href = 'dashboard.html';
+        signInLink.title = 'Go to your profile dashboard';
+    } else {
+        // User is not logged in - show "Sign In"
+        signInLink.textContent = 'Sign In';
+        signInLink.href = 'login.html';
+        signInLink.title = 'Sign in to your account';
+    }
+}
 
 // Prevent body scroll when mobile menu is open
 function toggleBodyScroll(shouldLock) {
@@ -125,3 +160,9 @@ function toggleBodyScroll(shouldLock) {
         document.body.style.overflow = '';
     }
 }
+
+console.log('Registering authReady event listener');
+document.addEventListener('authReady', function(event) {
+    console.log('authReady event received!', event.detail);
+    updateNavigationForAuth();
+});

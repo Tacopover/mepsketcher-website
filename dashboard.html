@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Manage your MepSketcher licenses and account">
+    
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.paddle.com https://cdn.jsdelivr.net;
+        style-src 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com;
+        connect-src 'self' https://*.paddle.com https://sandbox-checkout-service.paddle.com https://checkout-service.paddle.com https://*.supabase.co;
+        img-src 'self' data: https:;
+        font-src 'self' data:;
+        frame-src https://sandbox-buy.paddle.com https://buy.paddle.com;
+    ">
+    
+    <title>Dashboard - MepSketcher</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/license-expiration.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="index.html" class="brand-link">
+                    <span class="logo-text">MepSketcher</span>
+                </a>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+                <li><a href="#" class="nav-link" id="signOutBtn">Sign Out</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Dashboard Section -->
+    <section class="dashboard-section">
+        <div class="dashboard-container">
+            <!-- Dashboard Header -->
+            <div class="dashboard-header">
+                <h1 class="dashboard-title">My Dashboard</h1>
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-details">
+                        <h3 id="userName">Loading...</h3>
+                        <p id="userEmail">Loading...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Account Overview Card -->
+                <div class="dashboard-card">
+                    <div class="dashboard-card-header">
+                        <h2 class="dashboard-card-title">Account Overview</h2>
+                        <span class="card-icon">👤</span>
+                    </div>
+                    <div class="dashboard-card-content">
+                        <p><strong>Email:</strong> <span id="accountEmail">-</span></p>
+                        <p><strong>Email Verified:</strong> <span id="emailVerified">-</span></p>
+                        <p><strong>Member Since:</strong> <span id="memberSince">-</span></p>
+                        <p id="licenseExpiryInfo" style="margin-top: 10px;">
+                            <strong>License Status:</strong> <span id="licenseStatus">Loading...</span>
+                        </p>
+                        <div class="mt-1">
+                            <button class="btn btn-secondary btn-small" id="updateProfileBtn">Update Profile</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Organization Section -->
+            <div class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <h2 class="dashboard-card-title">Organization</h2>
+                    <span class="card-icon">🏢</span>
+                </div>
+                <div class="dashboard-card-content">
+                    <div id="organizationContainer">
+                        <!-- Organization info will be loaded here -->
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🏢</div>
+                            <h3>No Organization</h3>
+                            <p>You need to create an organization to manage licenses</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Licenses Section -->
+            <div class="dashboard-card">
+                <div class="dashboard-card-header">
+                    <h2 class="dashboard-card-title">Licenses</h2>
+                    <span class="card-icon">📜</span>
+                </div>
+                <div class="dashboard-card-content">
+                    <div id="licensesContainer">
+                        <!-- Licenses will be loaded here dynamically -->
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📦</div>
+                            <h3>No Licenses Yet</h3>
+                            <p>Purchase licenses to start using MepSketcher</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Add Member Modal -->
+    <div id="addMemberModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Team Member</h2>
+                <span class="close">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <form id="addMemberForm">
+                    <div class="form-group">
+                        <label for="memberEmail">Email Address</label>
+                        <input 
+                            type="email" 
+                            id="memberEmail" 
+                            required 
+                            placeholder="colleague@example.com"
+                            autocomplete="email">
+                        <small class="form-text">
+                            If the user doesn't have an account, we'll send them an invitation.
+                        </small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="memberRole">Role</label>
+                        <select id="memberRole">
+                            <option value="member">Member</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <small class="form-text">
+                            Admins can manage members and licenses.
+                        </small>
+                    </div>
+                    
+                    <div id="addMemberMessage" class="message" style="display: none;"></div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelAddMember">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="submitAddMember">Add Member</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Organization Name Modal -->
+    <div id="editOrgNameModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Organization Name</h2>
+                <span class="close">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <form id="editOrgNameForm">
+                    <div class="form-group">
+                        <label for="orgNameInput">Organization Name</label>
+                        <input 
+                            type="text" 
+                            id="orgNameInput" 
+                            required 
+                            placeholder="Enter organization name"
+                            autocomplete="organization">
+                        <small class="form-text">
+                            Choose a clear, descriptive name for your organization.
+                        </small>
+                    </div>
+                    
+                    <div id="editOrgNameMessage" class="message" style="display: none;"></div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelEditOrgName">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="submitEditOrgName">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2025 MepSketcher. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Include Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Include Paddle SDK -->
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+    
+    <!-- Include our scripts - IMPORTANT: Load local config first -->
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/paddle-config.js"></script>
+    <script src="js/paddle.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/license-expiration.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>

@@ -3,10 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="MepSketcher - Professional MEP Design Tool for PDF Drawings. Design MEP networks directly on your PDF drawings with an intuitive interface.">
+    <meta name="description" content="MEPSketcher - Professional MEP Design Tool for PDF Drawings. Design MEP networks directly on your PDF drawings with an intuitive interface.">
     <meta name="keywords" content="MEP, design tool, PDF, mechanical, electrical, plumbing, CAD, HVAC">
-    <meta name="author" content="MepSketcher">
-    <title>MepSketcher - Professional MEP Design Tool for PDF Drawings</title>
+    <meta name="author" content="MEPSketcher">
+    
+    <!-- Content Security Policy for Paddle and Supabase integration -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.paddle.com https://cdn.jsdelivr.net;
+        style-src 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com;
+        connect-src 'self' https://*.paddle.com https://sandbox-checkout-service.paddle.com https://checkout-service.paddle.com https://*.supabase.co;
+        img-src 'self' data: https:;
+        font-src 'self' data:;
+        frame-src https://sandbox-buy.paddle.com https://buy.paddle.com https://www.youtube.com;
+    ">
+    <title>MEPSketcher - Professional MEP Design Tool for PDF Drawings</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -14,14 +25,15 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <span class="logo-text">MepSketcher</span>
+                <span class="logo-text">MEPSketcher</span>
             </div>
             <ul class="nav-menu">
                 <li><a href="#home" class="nav-link">Home</a></li>
                 <li><a href="#features" class="nav-link">Features</a></li>
+                <li><a href="#pricing" class="nav-link">Pricing</a></li>
                 <li><a href="#screenshots" class="nav-link">Screenshots</a></li>
                 <li><a href="#getting-started" class="nav-link">Getting Started</a></li>
-                <li><a href="#download" class="nav-link btn-primary">Download</a></li>
+                <li><a href="login.html" class="nav-link">Sign In</a></li>
             </ul>
             <div class="hamburger">
                 <span></span>
@@ -38,14 +50,12 @@
                 <h1 class="hero-title">Professional MEP Design Tool for PDF Drawings</h1>
                 <p class="hero-subtitle">Design, manage, and visualize MEP networks directly on your PDF drawings with an intuitive, powerful interface.</p>
                 <div class="hero-buttons">
-                    <a href="#download" class="btn btn-primary btn-large">Download Now</a>
                     <a href="#features" class="btn btn-secondary btn-large">Learn More</a>
                 </div>
             </div>
             <div class="hero-image">
-                <div class="placeholder-image">
-                    <p>App Screenshot</p>
-                </div>
+                <img src="images/MEPSketcher main screen.png" alt="MEPSketcher Application Interface" class="hero-screenshot" id="heroImage" style="cursor: pointer;">
+                <p style="text-align: center; font-size: 12px; color: #666; margin-top: 8px;">Click to enlarge</p>
             </div>
         </div>
     </section>
@@ -53,14 +63,14 @@
     <!-- About Section -->
     <section id="about" class="about">
         <div class="container">
-            <h2 class="section-title">About MepSketcher</h2>
+            <h2 class="section-title">About MEPSketcher</h2>
             <div class="about-content">
                 <p class="about-text">
-                    MepSketcher is a specialized CAD-like application designed specifically for MEP (Mechanical, Electrical, and Plumbing) professionals. 
+                    MEPSketcher is a specialized CAD-like application designed specifically for MEP (Mechanical, Electrical, and Plumbing) professionals. 
                     Work directly with your PDF drawings to create, manage, and visualize complete MEP networks with precision and ease.
                 </p>
                 <p class="about-text">
-                    Whether you're designing HVAC systems, electrical networks, or plumbing layouts, MepSketcher provides the tools you need 
+                    Whether you're designing HVAC systems, electrical networks, or plumbing layouts, MEPSketcher provides the tools you need 
                     to streamline your workflow and improve project efficiency.
                 </p>
             </div>
@@ -75,17 +85,17 @@
                 <div class="feature-card">
                     <div class="feature-icon">🎯</div>
                     <h3 class="feature-title">Network Drawing</h3>
-                    <p class="feature-description">Create MEP segments, fittings, equipment, and terminals with intuitive drawing tools. Multiple drawing modes including click-to-create and draw-from-node.</p>
+                    <p class="feature-description">Create MEP segments, fittings, equipment, and terminals with intuitive drawing tools.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">🔧</div>
                     <h3 class="feature-title">Network Types</h3>
-                    <p class="feature-description">Pre-configured network types including supply/return air, chilled water, heating water, electrical, and more. Customize to fit your specific needs.</p>
+                    <p class="feature-description">Pre-configured network types including supply/return air, chilled water, heating water, sprinkler, and more. Customize to fit your specific needs.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🏢</div>
-                    <h3 class="feature-title">Building Management</h3>
-                    <p class="feature-description">Organize your projects by buildings and levels. Maintain a clear structure across complex multi-building projects.</p>
+                    <div class="feature-icon">🛠️</div>
+                    <h3 class="feature-title">MEP Symbols</h3>
+                    <p class="feature-description">Place pre-loaded MEP symbols or load your own custom symbols to accurately represent your designs.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">📋</div>
@@ -106,29 +116,86 @@
         </div>
     </section>
 
-    <!-- Screenshots Section -->
-    <section id="screenshots" class="screenshots">
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing">
         <div class="container">
-            <h2 class="section-title">See It In Action</h2>
-            <div class="screenshots-grid">
-                <div class="screenshot-card">
-                    <div class="placeholder-image">
-                        <p>Main Interface</p>
+            <h2 class="section-title">Choose Your License</h2>
+            <p class="section-subtitle">Start with a free trial or get full access with our yearly license</p>
+            <div class="pricing-grid">
+                <!-- Trial License Card -->
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Free Trial</h3>
+                        <div class="pricing-price">
+                            <span class="price-amount">Free</span>
+                            <span class="price-period">14 days</span>
+                        </div>
                     </div>
-                    <p class="screenshot-caption">Intuitive main interface with ribbon controls</p>
-                </div>
-                <div class="screenshot-card">
-                    <div class="placeholder-image">
-                        <p>Network Drawing</p>
+                    <div class="pricing-features">
+                        <ul class="feature-list">
+                            <li>✓ Full access to all features</li>
+                            <li>✓ PDF integration</li>
+                            <li>✓ All network types</li>
+                            <li>✓ Properties panel</li>
+                            <li>✓ Email support</li>
+                        </ul>
                     </div>
-                    <p class="screenshot-caption">Create MEP networks with ease</p>
-                </div>
-                <div class="screenshot-card">
-                    <div class="placeholder-image">
-                        <p>Properties Panel</p>
+                    <div class="pricing-footer">
+                        <button class="btn btn-secondary btn-full" onclick="startTrial()">Start Free Trial</button>
                     </div>
-                    <p class="screenshot-caption">Detailed properties and configuration</p>
                 </div>
+
+                <!-- Yearly License Card - Featured -->
+                <div class="pricing-card featured">
+                    <div class="pricing-badge">Most Popular</div>
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Yearly License</h3>
+                        <div class="pricing-price">
+                            <span id="yearly-license-price" class="price-amount">€200</span>
+                            <span class="price-period">per year</span>
+                        </div>
+                    </div>
+                    <div class="pricing-features">
+                        <ul class="feature-list">
+                            <li>✓ All trial features</li>
+                            <li>✓ Priority support</li>
+                            <li>✓ Regular updates</li>
+                            <li>✓ Commercial use</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-footer">
+                        <button class="btn btn-primary btn-full" onclick="purchaseYearlyLicense()">Buy Yearly License</button>
+                    </div>
+                </div>
+
+                <!-- Custom Quote Card -->
+                <div class="pricing-card">
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Enterprise</h3>
+                        <div class="pricing-price">
+                            <span class="price-amount">Custom</span>
+                            <span class="price-period">100+ licenses</span>
+                        </div>
+                    </div>
+                    <div class="pricing-features">
+                        <ul class="feature-list">
+                            <li>✓ Volume discounts</li>
+                            <li>✓ Dedicated support</li>
+                            <li>✓ Custom training</li>
+                            <li>✓ Flexible payment terms</li>
+                        </ul>
+                    </div>
+                    <div class="pricing-footer">
+                        <button class="btn btn-secondary btn-full" onclick="requestCustomQuote()">Request Quote</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Additional Info -->
+            <div class="pricing-info">
+                <p class="pricing-note">
+                    <strong>Note:</strong> All licenses include free updates during the license period. 
+                </p>
             </div>
         </div>
     </section>
@@ -136,23 +203,19 @@
     <!-- Use Cases Section -->
     <section id="use-cases" class="use-cases">
         <div class="container">
-            <h2 class="section-title">Who Uses MepSketcher?</h2>
+            <h2 class="section-title">Who Uses MEPSketcher?</h2>
             <div class="use-cases-grid">
                 <div class="use-case-card">
                     <h3>MEP Designers</h3>
-                    <p>Quickly sketch and iterate on MEP system designs directly on construction drawings.</p>
+                    <p>Quickly sketch and iterate on MEP system designs directly on architectural drawings.</p>
                 </div>
                 <div class="use-case-card">
                     <h3>MEP Coordinators</h3>
-                    <p>Coordinate complex multi-discipline systems and maintain clear documentation throughout the project lifecycle.</p>
+                    <p>Sketch and maintain complex multi-discipline systems throughout the project lifecycle.</p>
                 </div>
                 <div class="use-case-card">
-                    <h3>Design Teams</h3>
-                    <p>Collaborate on PDF-based MEP layouts with standardized network types and consistent visualization.</p>
-                </div>
-                <div class="use-case-card">
-                    <h3>Field Engineers</h3>
-                    <p>Create quick sketches and redlines on PDF drawings for field coordination and as-built documentation.</p>
+                    <h3>Contractors</h3>
+                    <p>Create MEP designs on PDF drawings for field execution and as-built documentation.</p>
                 </div>
             </div>
         </div>
@@ -181,9 +244,8 @@
                         <h3 class="step-title">Installation</h3>
                         <ul class="step-list">
                             <li>Download the installer from the link below</li>
-                            <li>Run the installer as Administrator</li>
                             <li>Follow the installation wizard</li>
-                            <li>Launch MepSketcher from your Start Menu</li>
+                            <li>Launch MEPSketcher from your Start Menu</li>
                         </ul>
                     </div>
                 </div>
@@ -193,36 +255,21 @@
                         <h3 class="step-title">Basic Workflow</h3>
                         <ul class="step-list">
                             <li>Open your PDF drawing</li>
-                            <li>Create a new building and level structure</li>
-                            <li>Select network types and drawing tools</li>
                             <li>Start placing terminals, equipment, and segments</li>
                         </ul>
                     </div>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Technology Stack Section -->
-    <section id="technology" class="technology">
-        <div class="container">
-            <h2 class="section-title">Built With Modern Technology</h2>
-            <div class="tech-grid">
-                <div class="tech-item">
-                    <h3>WPF</h3>
-                    <p>Windows Presentation Foundation</p>
-                </div>
-                <div class="tech-item">
-                    <h3>.NET Framework</h3>
-                    <p>Reliable & Powerful</p>
-                </div>
-                <div class="tech-item">
-                    <h3>PDFTron SDK</h3>
-                    <p>Advanced PDF Rendering</p>
-                </div>
-                <div class="tech-item">
-                    <h3>C#</h3>
-                    <p>Modern C# Development</p>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Learn More With Video</h3>
+                        <p style="margin-bottom: 24px; text-align: left;">Watch our feature overview to see MEPSketcher in action:</p>
+                        <div style="display: flex; justify-content: center; margin: 0 auto; width: 100%; padding: 0 20px; box-sizing: border-box;">
+                            <div class="video-container" style="position: relative; width: 100%; max-width: 1400px; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                                <iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src="https://www.youtube.com/embed/RNxDewEy69o" title="MEPSketcher Feature Overview" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -231,13 +278,13 @@
     <!-- Download Section -->
     <section id="download" class="download">
         <div class="container">
-            <h2 class="section-title">Download MepSketcher</h2>
+            <h2 class="section-title">Download MEPSketcher</h2>
             <div class="download-content">
-                <p class="download-text">Get started with MepSketcher today. Free trial available.</p>
+                <p class="download-text">Get started with MEPSketcher today. Free trial available.</p>
                 <div class="download-buttons">
-                    <a href="#" class="btn btn-primary btn-large" onclick="alert('Download link coming soon!'); return false;">Download for Windows</a>
+                    <button class="btn btn-primary btn-large" onclick="startTrial()">Download for Windows</button>
                 </div>
-                <p class="download-version">Version 1.0 | Windows 10+ | 120 MB</p>
+                <p class="download-version">Version 1.0 | Windows 10+ | 200 MB</p>
             </div>
         </div>
     </section>
@@ -249,7 +296,6 @@
             <div class="contact-content">
                 <p class="contact-text">Have questions or need support? We're here to help.</p>
                 <div class="contact-links">
-                    <a href="https://github.com/Tacopover/MepSketcher" class="btn btn-secondary" target="_blank" rel="noopener">View on GitHub</a>
                     <a href="mailto:info@mepsketcher.com" class="btn btn-secondary">Contact Us</a>
                 </div>
             </div>
@@ -261,31 +307,84 @@
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h3>MepSketcher</h3>
+                    <h3>MEPSketcher</h3>
                     <p>Professional MEP Design Tool</p>
                 </div>
                 <div class="footer-section">
                     <h4>Links</h4>
                     <ul class="footer-links">
                         <li><a href="#features">Features</a></li>
-                        <li><a href="#download">Download</a></li>
-                        <li><a href="https://github.com/Tacopover/MepSketcher" target="_blank" rel="noopener">GitHub</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
                     <h4>Resources</h4>
                     <ul class="footer-links">
                         <li><a href="#getting-started">Getting Started</a></li>
-                        <li><a href="https://github.com/Tacopover/MepSketcher/blob/main/README.md" target="_blank" rel="noopener">Documentation</a></li>
+                        <li><a href="docs.html">Documentation</a></li>
                     </ul>
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2025 MepSketcher. All rights reserved.</p>
+                <p>&copy; 2026 MEPSketcher. All rights reserved.</p>
             </div>
         </div>
     </footer>
 
+    <!-- Image Lightbox Modal -->
+    <div id="imageModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9);">
+        <span id="closeModal" style="position: absolute; top: 20px; right: 40px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer;">&times;</span>
+        <img id="modalImage" style="margin: auto; display: block; width: auto; max-width: 90%; max-height: 90%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" src="" alt="">
+    </div>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Authentication -->
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <!-- Paddle SDK v2 -->
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+    
+    <!-- MepSketcher Scripts -->
+    <script src="js/paddle-config.js"></script>
+    <script src="js/paddle.js"></script>
+    <script src="js/pricing.js"></script>
     <script src="js/main.js"></script>
+
+    <!-- Image Lightbox Script -->
+    <script>
+        const heroImage = document.getElementById('heroImage');
+        const imageModal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const closeModal = document.getElementById('closeModal');
+
+        // Open modal when hero image is clicked
+        heroImage.addEventListener('click', function() {
+            imageModal.style.display = 'block';
+            modalImage.src = this.src;
+            modalImage.alt = this.alt;
+        });
+
+        // Close modal when X is clicked
+        closeModal.addEventListener('click', function() {
+            imageModal.style.display = 'none';
+        });
+
+        // Close modal when clicking outside the image
+        imageModal.addEventListener('click', function(event) {
+            if (event.target === imageModal) {
+                imageModal.style.display = 'none';
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && imageModal.style.display === 'block') {
+                imageModal.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>

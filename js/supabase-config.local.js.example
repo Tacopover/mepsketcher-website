@@ -1,0 +1,23 @@
+// Supabase Configuration - Local Example
+// IMPORTANT: 
+// 1. Copy this file and rename it to 'supabase-config.local.js'
+// 2. Replace the placeholder values with your actual Supabase credentials
+// 3. The .local.js file is gitignored and will not be committed to the repository
+
+const SUPABASE_CONFIG = {
+    // Your Supabase Project URL (e.g., "https://your-project.supabase.co")
+    url: 'YOUR_SUPABASE_URL_HERE',
+    
+    // Supabase Anonymous API Key (public key for client-side use)
+    // This is safe to expose in client-side code
+    anonKey: 'YOUR_SUPABASE_ANON_KEY_HERE',
+    
+    // Optional: Service Role Key (ONLY use in server-side code if needed)
+    // DO NOT include this in client-side code
+    // serviceRoleKey: 'YOUR_SERVICE_ROLE_KEY_HERE'
+};
+
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = SUPABASE_CONFIG;
+}
