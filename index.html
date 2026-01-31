@@ -15,7 +15,7 @@
         connect-src 'self' https://*.paddle.com https://sandbox-checkout-service.paddle.com https://checkout-service.paddle.com https://*.supabase.co;
         img-src 'self' data: https:;
         font-src 'self' data:;
-        frame-src https://sandbox-buy.paddle.com https://buy.paddle.com;
+        frame-src https://sandbox-buy.paddle.com https://buy.paddle.com https://www.youtube.com;
     ">
     <title>MEPSketcher - Professional MEP Design Tool for PDF Drawings</title>
     <link rel="stylesheet" href="css/style.css">
@@ -54,9 +54,8 @@
                 </div>
             </div>
             <div class="hero-image">
-                <div class="placeholder-image">
-                    <p>App Screenshot</p>
-                </div>
+                <img src="images/MEPSketcher main screen.png" alt="MEPSketcher Application Interface" class="hero-screenshot" id="heroImage" style="cursor: pointer;">
+                <p style="text-align: center; font-size: 12px; color: #666; margin-top: 8px;">Click to enlarge</p>
             </div>
         </div>
     </section>
@@ -201,33 +200,6 @@
         </div>
     </section>
 
-    <!-- Screenshots Section -->
-    <section id="screenshots" class="screenshots">
-        <div class="container">
-            <h2 class="section-title">See It In Action</h2>
-            <div class="screenshots-grid">
-                <div class="screenshot-card">
-                    <div class="placeholder-image">
-                        <p>Main Interface</p>
-                    </div>
-                    <p class="screenshot-caption">Intuitive main interface with ribbon controls</p>
-                </div>
-                <div class="screenshot-card">
-                    <div class="placeholder-image">
-                        <p>Network Drawing</p>
-                    </div>
-                    <p class="screenshot-caption">Create MEP networks with ease</p>
-                </div>
-                <div class="screenshot-card">
-                    <div class="placeholder-image">
-                        <p>Properties Panel</p>
-                    </div>
-                    <p class="screenshot-caption">Detailed properties and configuration</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- Use Cases Section -->
     <section id="use-cases" class="use-cases">
         <div class="container">
@@ -287,6 +259,18 @@
                         </ul>
                     </div>
                 </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Learn More With Video</h3>
+                        <p style="margin-bottom: 24px; text-align: left;">Watch our feature overview to see MEPSketcher in action:</p>
+                        <div style="display: flex; justify-content: center; margin: 0 auto; width: 100%; padding: 0 20px; box-sizing: border-box;">
+                            <div class="video-container" style="position: relative; width: 100%; max-width: 1400px; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                                <iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src="https://www.youtube.com/embed/RNxDewEy69o" title="MEPSketcher Feature Overview" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -300,7 +284,7 @@
                 <div class="download-buttons">
                     <button class="btn btn-primary btn-large" onclick="startTrial()">Download for Windows</button>
                 </div>
-                <p class="download-version">Version 1.0 | Windows 10+ | 120 MB</p>
+                <p class="download-version">Version 1.0 | Windows 10+ | 200 MB</p>
             </div>
         </div>
     </section>
@@ -346,6 +330,12 @@
         </div>
     </footer>
 
+    <!-- Image Lightbox Modal -->
+    <div id="imageModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9);">
+        <span id="closeModal" style="position: absolute; top: 20px; right: 40px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer;">&times;</span>
+        <img id="modalImage" style="margin: auto; display: block; width: auto; max-width: 90%; max-height: 90%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" src="" alt="">
+    </div>
+
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -362,5 +352,39 @@
     <script src="js/paddle.js"></script>
     <script src="js/pricing.js"></script>
     <script src="js/main.js"></script>
+
+    <!-- Image Lightbox Script -->
+    <script>
+        const heroImage = document.getElementById('heroImage');
+        const imageModal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const closeModal = document.getElementById('closeModal');
+
+        // Open modal when hero image is clicked
+        heroImage.addEventListener('click', function() {
+            imageModal.style.display = 'block';
+            modalImage.src = this.src;
+            modalImage.alt = this.alt;
+        });
+
+        // Close modal when X is clicked
+        closeModal.addEventListener('click', function() {
+            imageModal.style.display = 'none';
+        });
+
+        // Close modal when clicking outside the image
+        imageModal.addEventListener('click', function(event) {
+            if (event.target === imageModal) {
+                imageModal.style.display = 'none';
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && imageModal.style.display === 'block') {
+                imageModal.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>
