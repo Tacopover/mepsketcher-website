@@ -328,8 +328,9 @@
 .account-actions {
     display: flex;
     justify-content: flex-end;
-    margin-top: var(--spacing-md);
+    margin-top: var(--spacing-lg);
     gap: var(--spacing-sm);
+    padding-left: var(--spacing-md);
 }
 
 .account-actions .btn {
