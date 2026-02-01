@@ -1,25 +1,10 @@
-// Supabase Configuration Loader
-// This file loads configuration from supabase-config.local.js
-// If local config doesn't exist, it uses placeholder values
+// Supabase Configuration
+// Production configuration for mepsketcher.com
 
-// Default configuration (placeholder values)
-const DEFAULT_CONFIG = {
-    url: 'YOUR_SUPABASE_URL_HERE',
-    anonKey: 'YOUR_SUPABASE_ANON_KEY_HERE'
+const SUPABASE_CONFIG = {
+    url: 'https://jskwfvwbhyltmxcdsbnm.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impza3dmdndiaHlsdG14Y2RzYm5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5ODA5MzIsImV4cCI6MjA2NzU1NjkzMn0.SE3xzj-1Qi2flWDtlGyyO2Gpp-fRFtoeA0W-ZYCVkvc'
 };
-
-// SUPABASE_CONFIG should already be declared in supabase-config.local.js
-// This file only provides the fallback and helper functions
-// If supabase-config.local.js is missing, we need to use window to avoid redeclaration
-if (typeof SUPABASE_CONFIG === 'undefined') {
-    window.SUPABASE_CONFIG = DEFAULT_CONFIG;
-}
-
-// Note: The actual configuration is loaded from supabase-config.local.js
-// which should be loaded BEFORE this file in your HTML
-// Example: 
-// <script src="js/supabase-config.local.js"></script>
-// <script src="js/supabase-config.js"></script>
 
 // Check if configuration is properly set
 function isConfigured() {
