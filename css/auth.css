@@ -315,6 +315,27 @@
     line-height: 1.6;
 }
 
+.account-overview-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+}
+
+.account-info {
+    flex: 1;
+}
+
+.account-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--spacing-md);
+    gap: var(--spacing-sm);
+}
+
+.account-actions .btn {
+    white-space: nowrap;
+}
+
 /* License List */
 .license-list {
     list-style: none;

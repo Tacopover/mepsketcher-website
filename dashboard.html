@@ -61,15 +61,25 @@
                         <h2 class="dashboard-card-title">Account Overview</h2>
                         <span class="card-icon">👤</span>
                     </div>
-                    <div class="dashboard-card-content">
-                        <p><strong>Email:</strong> <span id="accountEmail">-</span></p>
-                        <p><strong>Email Verified:</strong> <span id="emailVerified">-</span></p>
-                        <p><strong>Member Since:</strong> <span id="memberSince">-</span></p>
-                        <p id="licenseExpiryInfo" style="margin-top: 10px;">
-                            <strong>License Status:</strong> <span id="licenseStatus">Loading...</span>
-                        </p>
-                        <div class="mt-1">
-                            <button class="btn btn-secondary btn-small" id="updateProfileBtn">Update Profile</button>
+                    <div class="dashboard-card-content account-overview-content">
+                        <div class="account-info">
+                            <p><strong>Email:</strong> <span id="accountEmail">-</span></p>
+                            <p><strong>Email Verified:</strong> <span id="emailVerified">-</span></p>
+                            <p><strong>Member Since:</strong> <span id="memberSince">-</span></p>
+                            <p id="licenseExpiryInfo" style="margin-top: 10px;">
+                                <strong>License Status:</strong> <span id="licenseStatus">Loading...</span>
+                            </p>
+                            <div class="mt-1">
+                                <button class="btn btn-secondary btn-small" id="updateProfileBtn">Update Profile</button>
+                            </div>
+                        </div>
+                        <div class="account-actions">
+                            <a href="https://github.com/tacopover/mepsketcher-website/releases/latest/download/MepSketcher-win-Setup.exe" 
+                               class="btn btn-primary btn-small" 
+                               id="downloadInstallerBtn"
+                               download>
+                                download installer
+                            </a>
                         </div>
                     </div>
                 </div>
