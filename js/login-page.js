@@ -211,9 +211,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (result.success) {
             if (isTrial) {
-                showMessage(signupMessage, '🎉 Trial account created! Please check your email to verify your account and start your 14-day free trial.', 'success');
+                showMessage(signupMessage, '🎉 Trial account created! Please check your email to verify your account and start your 14-day free trial. The email may take a few minutes to arrive.', 'success');
             } else {
-                showMessage(signupMessage, 'Account created successfully! Please check your email to verify your account.', 'success');
+                showMessage(signupMessage, 'Account created successfully! Please check your email to verify your account. The email may take a few minutes to arrive.', 'success');
             }
             
             // Clear form

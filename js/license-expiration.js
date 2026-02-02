@@ -8,6 +8,7 @@ class LicenseExpirationManager {
         this.supabase = supabase;
         this.organizationId = organizationId;
         this.currentLicense = null;
+        this.currentOrganization = null;
     }
 
     /**
@@ -15,6 +16,7 @@ class LicenseExpirationManager {
      */
     async initialize() {
         await this.loadLicenseInfo();
+        await this.loadOrganizationInfo();
         await this.checkAndShowExpirationBanner();
         this.setupRenewalListeners();
     }
@@ -46,10 +48,61 @@ class LicenseExpirationManager {
     }
 
     /**
+     * Load organization information (for trial status)
+     */
+    async loadOrganizationInfo() {
+        try {
+            const { data, error } = await this.supabase
+                .from('organizations')
+                .select('id, name, is_trial, trial_expires_at')
+                .eq('id', this.organizationId)
+                .maybeSingle();
+
+            if (error) {
+                console.error('Error loading organization:', error);
+                return null;
+            }
+
+            this.currentOrganization = data;
+            return data;
+        } catch (error) {
+            console.error('Exception loading organization:', error);
+            return null;
+        }
+    }
+
+    /**
      * Get license status using client-side logic
      */
     async getLicenseStatus() {
         try {
+            // Check if organization is on trial first
+            if (this.currentOrganization?.is_trial && this.currentOrganization?.trial_expires_at) {
+                const trialExpiresAt = new Date(this.currentOrganization.trial_expires_at);
+                const now = new Date();
+                const daysRemaining = Math.ceil((trialExpiresAt - now) / (1000 * 60 * 60 * 24));
+
+                if (daysRemaining <= 0) {
+                    return {
+                        status: 'trial_expired',
+                        license_type: 'trial',
+                        days_remaining: daysRemaining,
+                        message: 'Trial expired',
+                        severity: 'critical',
+                        action_required: true
+                    };
+                } else {
+                    return {
+                        status: 'trial_active',
+                        license_type: 'trial',
+                        days_remaining: daysRemaining,
+                        message: `Trial expires in ${daysRemaining} days`,
+                        severity: daysRemaining <= 7 ? 'critical' : 'info',
+                        action_required: daysRemaining <= 7
+                    };
+                }
+            }
+
             if (!this.currentLicense) {
                 return {
                     status: 'no_license',
@@ -193,38 +246,56 @@ class LicenseExpirationManager {
         let statusHTML = '';
         let statusClass = '';
 
-        switch (status.status) {
-            case 'expired':
-                statusClass = 'status-critical';
-                statusHTML = `🚫 <span style="color: #dc3545;">Expired ${Math.abs(status.days_remaining)} days ago</span>`;
-                break;
-            case 'grace_period':
-                statusClass = 'status-warning';
-                statusHTML = `⚠️ <span style="color: #ff6b35;">Grace Period (${status.grace_days_left} days left)</span>`;
-                break;
-            case 'just_expired':
-                statusClass = 'status-critical';
-                statusHTML = `⚠️ <span style="color: #dc3545;">Expired Today</span>`;
-                break;
-            case 'expiring_soon':
+        // Handle trial licenses
+        if (status.license_type === 'trial') {
+            if (status.status === 'trial_active') {
                 if (status.days_remaining <= 7) {
                     statusClass = 'status-critical';
-                    statusHTML = `🔴 <span style="color: #dc3545;">Expires in ${status.days_remaining} days</span>`;
+                    statusHTML = `🧪 <span style="color: #dc3545;">Trial - ${status.days_remaining} days left</span>`;
                 } else {
-                    statusClass = 'status-warning';
-                    statusHTML = `⚠️ <span style="color: #ff8c42;">Expires in ${status.days_remaining} days</span>`;
+                    statusClass = 'status-info';
+                    statusHTML = `🧪 <span style="color: #0d6efd;">Trial - ${status.days_remaining} days left</span>`;
                 }
-                break;
-            case 'active':
-                statusClass = 'status-active';
-                statusHTML = `✅ <span style="color: #28a745;">Active (${status.days_remaining} days remaining)</span>`;
-                break;
-            case 'no_license':
-                statusClass = 'status-none';
-                statusHTML = `<span style="color: #6c757d;">No license found</span>`;
-                break;
-            default:
-                statusHTML = `<span style="color: #6c757d;">${status.message}</span>`;
+            } else if (status.status === 'trial_expired') {
+                statusClass = 'status-critical';
+                statusHTML = `🧪 <span style="color: #dc3545;">Trial Expired</span>`;
+            }
+        }
+        // Handle paid licenses
+        else {
+            switch (status.status) {
+                case 'expired':
+                    statusClass = 'status-critical';
+                    statusHTML = `🚫 <span style="color: #dc3545;">Expired ${Math.abs(status.days_remaining)} days ago</span>`;
+                    break;
+                case 'grace_period':
+                    statusClass = 'status-warning';
+                    statusHTML = `⚠️ <span style="color: #ff6b35;">Grace Period (${status.grace_days_left} days left)</span>`;
+                    break;
+                case 'just_expired':
+                    statusClass = 'status-critical';
+                    statusHTML = `⚠️ <span style="color: #dc3545;">Expired Today</span>`;
+                    break;
+                case 'expiring_soon':
+                    if (status.days_remaining <= 7) {
+                        statusClass = 'status-critical';
+                        statusHTML = `🔴 <span style="color: #dc3545;">Expires in ${status.days_remaining} days</span>`;
+                    } else {
+                        statusClass = 'status-warning';
+                        statusHTML = `⚠️ <span style="color: #ff8c42;">Expires in ${status.days_remaining} days</span>`;
+                    }
+                    break;
+                case 'active':
+                    statusClass = 'status-active';
+                    statusHTML = `✅ <span style="color: #28a745;">Active (${status.days_remaining} days remaining)</span>`;
+                    break;
+                case 'no_license':
+                    statusClass = 'status-none';
+                    statusHTML = `<span style="color: #6c757d;">No license found</span>`;
+                    break;
+                default:
+                    statusHTML = `<span style="color: #6c757d;">${status.message}</span>`;
+            }
         }
 
         statusElement.innerHTML = statusHTML;
@@ -239,7 +310,7 @@ class LicenseExpirationManager {
                 renewBtn.id = 'renewLicenseFromOverview';
                 renewBtn.className = 'btn btn-danger btn-small';
                 renewBtn.style.marginLeft = '10px';
-                renewBtn.textContent = 'Renew Now';
+                renewBtn.textContent = status.license_type === 'trial' ? 'Upgrade Now' : 'Renew Now';
                 renewBtn.onclick = () => this.openRenewalFlow();
                 statusElement.appendChild(renewBtn);
             }
