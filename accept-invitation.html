@@ -152,26 +152,12 @@
     </div>
   </footer>
 
-  <!-- Include Supabase JS SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- No need for Supabase SDK - using edge function -->
   
-  <!-- Include our scripts -->
-  <script src="js/supabase-config.local.js"></script>
+  <!-- Include our scripts for configuration only -->
   <script src="js/supabase-config.js"></script>
-  <script src="js/auth.js"></script>
   
   <script>
-    /**
-     * Hash token using SHA-256 (same algorithm as server)
-     */
-    async function hashToken(token) {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(token);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
     async function verifyInvitation() {
       const urlParams = new URLSearchParams(window.location.search);
       const plainToken = urlParams.get('token');
@@ -182,69 +168,37 @@
       }
 
       try {
-        // Hash the token client-side before querying
-        const tokenHash = await hashToken(plainToken);
-        
         console.log('Verifying invitation token...');
 
-        // Query using hashed token
-        const { data: invitation, error } = await authService.supabase
-          .from('organization_members')
-          .select(`
-            id,
-            email,
-            role,
-            status,
-            invitation_expires_at,
-            organization_id,
-            organizations (
-              name,
-              owner_id
-            )
-          `)
-          .eq('invite_token_hash', tokenHash)
-          .eq('status', 'pending')
-          .maybeSingle();
+        // Call edge function to verify invitation (server-side with service role)
+        const response = await fetch('https://jskwfvwbhyltmxcdsbnm.supabase.co/functions/v1/verify-invitation-token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+          },
+          body: JSON.stringify({ token: plainToken }),
+        });
 
-        if (error) {
-          console.error('Error querying invitation:', error);
-          showError('Error checking invitation. Please try again.');
+        const data = await response.json();
+
+        if (!response.ok) {
+          showError(data.error || 'Error checking invitation. Please try again.');
           return;
         }
-
-        if (!invitation) {
-          showError('Invitation not found or already used');
-          return;
-        }
-
-        // Check if expired
-        const expiresAt = new Date(invitation.invitation_expires_at);
-        if (expiresAt < new Date()) {
-          showError('This invitation has expired. Please contact the organization administrator for a new invitation.');
-          return;
-        }
-
-        // Get inviter name
-        const { data: inviterProfile } = await authService.supabase
-          .from('user_profiles')
-          .select('name')
-          .eq('id', invitation.organizations.owner_id)
-          .single();
 
         // Show invitation details
-        document.getElementById('inviter-name').textContent = 
-          inviterProfile?.name || 'Someone';
-        document.getElementById('org-name').textContent = 
-          invitation.organizations.name;
+        document.getElementById('inviter-name').textContent = data.invitation.inviterName;
+        document.getElementById('org-name').textContent = data.invitation.organizationName;
         document.getElementById('role-name').textContent = 
-          invitation.role.charAt(0).toUpperCase() + invitation.role.slice(1);
+          data.invitation.role.charAt(0).toUpperCase() + data.invitation.role.slice(1);
 
         // Setup accept button - pass PLAIN token (needed for signup)
         // Also pass email and organization name to pre-fill and lock the signup form
         const signupUrl = new URL('login.html', window.location.origin);
         signupUrl.searchParams.set('invitation_token', plainToken);
-        signupUrl.searchParams.set('email', invitation.email);
-        signupUrl.searchParams.set('organization', invitation.organizations.name);
+        signupUrl.searchParams.set('email', data.invitation.email);
+        signupUrl.searchParams.set('organization', data.invitation.organizationName);
         
         document.getElementById('accept-btn').href = signupUrl.toString();
 

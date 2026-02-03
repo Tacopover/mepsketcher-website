@@ -137,11 +137,10 @@ class MepSketcherLicensing {
      * Purchase yearly license using Paddle v2
      */
     async purchaseYearlyLicense(quantity = 1) {
-        // TEMPORARILY DISABLED: Show message instead of opening Paddle checkout
-        alert('We are working on getting the license system up and running soon. Please go ahead and use the trial version for now');
-        return;
+        // // TEMPORARILY DISABLED: Show message instead of opening Paddle checkout
+        // alert('We are working on getting the license system up and running soon. Please go ahead and use the trial version for now');
+        // return;
 
-        /* ===== PADDLE CHECKOUT CODE (COMMENTED OUT - WILL BE RE-ENABLED LATER) =====
         if (!this.isInitialized) {
             console.error('Paddle not initialized');
             this.showError('Payment system unavailable. Please try again later.');
@@ -312,7 +311,6 @@ class MepSketcherLicensing {
             console.error('Failed to open checkout:', error);
             this.showError('Payment system unavailable. Please try again later.');
         }
-        ===== END PADDLE CHECKOUT CODE ===== */
     }
 
     /**

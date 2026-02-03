@@ -200,6 +200,19 @@ Deno.serve(async (req) => {
       );
 
       try {
+        // Confirm email for invitation-based signups (they don't need to verify via email)
+        const { error: confirmError } =
+          await supabaseAdmin.auth.admin.updateUserById(userId, {
+            email_confirm: true,
+          });
+
+        if (confirmError) {
+          console.error("Failed to confirm email:", confirmError);
+          // Continue anyway, this shouldn't block signup
+        } else {
+          console.log("Email confirmed for invitation-based signup");
+        }
+
         // 2a. Create user profile
         const { error: profileError } = await supabaseAdmin
           .from("user_profiles")
@@ -216,101 +229,95 @@ Deno.serve(async (req) => {
 
         console.log("User profile created");
 
-        // 2b. Check if user is accepting an invitation
-        if (pendingInvitation) {
-          console.log("Processing invitation acceptance");
+        // 2b. Accept invitation
+        // 2b. Accept invitation
+        console.log("Processing invitation acceptance");
 
-          try {
-            // Accept invitation - update to active and assign license
-            const { error: updateError } = await supabaseAdmin
-              .from("organization_members")
-              .update({
-                user_id: userId,
-                status: "active",
-                has_license: true, // Assign license to new member
-                accepted_at: new Date().toISOString(),
-                invite_token_hash: null, // Clear token hash
-                invite_token_sent_at: null,
-                invitation_expires_at: null,
-              })
-              .eq("id", pendingInvitation.id);
+        try {
+          // Accept invitation - update to active and assign license
+          const { error: updateError } = await supabaseAdmin
+            .from("organization_members")
+            .update({
+              user_id: userId,
+              status: "active",
+              has_license: true, // Assign license to new member
+              accepted_at: new Date().toISOString(),
+              invite_token_hash: null, // Clear token hash
+              invite_token_sent_at: null,
+              invitation_expires_at: null,
+            })
+            .eq("id", pendingInvitation.id);
 
-            if (updateError) {
-              console.error("Error accepting invitation:", updateError);
-              throw new Error(
-                `Failed to accept invitation: ${updateError.message}`,
-              );
-            }
-
-            console.log(
-              "Invitation accepted successfully and license assigned",
-            );
-
-            // Increment used licenses
-            const { data: license } = await supabaseAdmin
-              .from("organization_licenses")
-              .select("used_licenses")
-              .eq("organization_id", pendingInvitation.organization_id)
-              .single();
-
-            if (license) {
-              await supabaseAdmin
-                .from("organization_licenses")
-                .update({
-                  used_licenses: license.used_licenses + 1,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("organization_id", pendingInvitation.organization_id);
-
-              console.log("License count incremented");
-            }
-
-            // Get organization name for response message
-            const { data: org } = await supabaseAdmin
-              .from("organizations")
-              .select("name")
-              .eq("id", pendingInvitation.organization_id)
-              .single();
-
-            // Return success - user joined existing org via invitation
-            return new Response(
-              JSON.stringify({
-                success: true,
-                user: {
-                  id: userId,
-                  email: email,
-                  name: name,
-                  emailConfirmed: true,
-                },
-                requiresEmailConfirmation: false,
-                message: `Account created! You've joined ${
-                  org?.name || "the organization"
-                }.`,
-                joinedOrganization: true,
-                organizationId: pendingInvitation.organization_id,
-              } as SignUpResponse),
-              {
-                status: 200,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-              },
-            );
-          } catch (inviteError) {
-            console.error("Error processing invitation:", inviteError);
-            return new Response(
-              JSON.stringify({
-                success: false,
-                error: "Failed to process invitation. Please try again.",
-              }),
-              {
-                status: 500,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-              },
+          if (updateError) {
+            console.error("Error accepting invitation:", updateError);
+            throw new Error(
+              `Failed to accept invitation: ${updateError.message}`,
             );
           }
-        }
 
-        // If no invitation - this shouldn't happen in this branch
-        // Fall through to regular signup below
+          console.log("Invitation accepted successfully and license assigned");
+
+          // Increment used licenses
+          const { data: license } = await supabaseAdmin
+            .from("organization_licenses")
+            .select("used_licenses")
+            .eq("organization_id", pendingInvitation.organization_id)
+            .single();
+
+          if (license) {
+            await supabaseAdmin
+              .from("organization_licenses")
+              .update({
+                used_licenses: license.used_licenses + 1,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("organization_id", pendingInvitation.organization_id);
+
+            console.log("License count incremented");
+          }
+
+          // Get organization name for response message
+          const { data: org } = await supabaseAdmin
+            .from("organizations")
+            .select("name")
+            .eq("id", pendingInvitation.organization_id)
+            .single();
+
+          // Return success - user joined existing org via invitation
+          return new Response(
+            JSON.stringify({
+              success: true,
+              user: {
+                id: userId,
+                email: email,
+                name: name,
+                emailConfirmed: true,
+              },
+              requiresEmailConfirmation: false,
+              message: `Account created! You've joined ${
+                org?.name || "the organization"
+              }.`,
+              joinedOrganization: true,
+              organizationId: pendingInvitation.organization_id,
+            } as SignUpResponse),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
+        } catch (inviteError) {
+          console.error("Error processing invitation:", inviteError);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: "Failed to process invitation. Please try again.",
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
+        }
       } catch (setupError) {
         console.error("Invitation setup error:", setupError);
         // Fall through to regular signup

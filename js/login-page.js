@@ -11,6 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const signupMessage = document.getElementById('signupMessage');
     const resetMessage = document.getElementById('resetMessage');
 
+    // Verify all required elements exist
+    if (!loginForm || !signupForm || !resetPasswordForm) {
+        console.error('Missing form elements:', { loginForm, signupForm, resetPasswordForm });
+        return;
+    }
+
     // Check for invitation token in URL
     const urlParams = new URLSearchParams(window.location.search);
     const invitationToken = urlParams.get('invitation_token');
@@ -51,27 +57,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Pre-fill email and make read-only
         const emailInput = document.getElementById('signupEmail');
-        emailInput.value = invitedEmail;
-        emailInput.readOnly = true;
-        emailInput.style.backgroundColor = '#f5f5f5';
-        emailInput.style.cursor = 'not-allowed';
-
-        // Pre-fill organization name and make read-only
-        const orgInput = document.getElementById('organizationName');
-        orgInput.value = invitedOrganization;
-        orgInput.readOnly = true;
-        orgInput.style.backgroundColor = '#f5f5f5';
-        orgInput.style.cursor = 'not-allowed';
-
-        // Update the organization hint text
-        const orgHint = orgInput.nextElementSibling;
-        if (orgHint && orgHint.classList.contains('form-hint')) {
-            orgHint.textContent = 'You are joining an existing organization';
-            orgHint.style.color = '#0066cc';
+        if (emailInput) {
+            emailInput.value = invitedEmail;
+            emailInput.readOnly = true;
+            emailInput.style.backgroundColor = '#f5f5f5';
+            emailInput.style.cursor = 'not-allowed';
+        } else {
+            console.error('signupEmail input element not found');
         }
 
-        // Show invitation message
-        showMessage(signupMessage, '✉️ You\'ve been invited to join an organization! Complete signup below.', 'info');
+        // Show invitation message (organization name no longer needs to be shown since we auto-generate it)
+        if (signupMessage) {
+            showMessage(signupMessage, `✉️ You've been invited to join ${invitedOrganization}! Complete signup below.`, 'info');
+        }
     }
 
     // Tab switching
@@ -187,7 +185,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const result = await authService.signUp(email, password, name, null, invitationToken);
         
         if (result.success) {
-            if (isTrial) {
+            if (invitationToken) {
+                // Invitation-based signup - no email verification needed
+                showMessage(signupMessage, '✅ Account created! You can now sign in.', 'success');
+            } else if (isTrial) {
                 showMessage(signupMessage, '🎉 Trial account created! Please check your email to verify your account and start your 14-day free trial. The email may take a few minutes to arrive.', 'success');
             } else {
                 showMessage(signupMessage, 'Account created successfully! Please check your email to verify your account. The email may take a few minutes to arrive.', 'success');
@@ -196,10 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Clear form
             signupForm.reset();
             
-            // Switch to login tab after 3 seconds
+            // Switch to login tab after 3 seconds (or 1 second for invitation signups)
             setTimeout(() => {
                 tabButtons[0].click();
-            }, 3000);
+            }, invitationToken ? 1000 : 3000);
         } else {
             showMessage(signupMessage, `Error: ${result.error}`, 'error');
         }
