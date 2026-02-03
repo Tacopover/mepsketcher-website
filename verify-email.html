@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Verify your MepSketcher email address">
+    
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline';
+        style-src 'self' 'unsafe-inline';
+        connect-src 'self' https://*.supabase.co;
+        img-src 'self' data: https:;
+        font-src 'self' data:;
+    ">
+    
+    <title>Verify Email - MepSketcher</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <a href="index.html" class="brand-link">
+                    <span class="logo-text">MepSketcher</span>
+                </a>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="index.html#features" class="nav-link">Features</a></li>
+                <li><a href="index.html#download" class="nav-link">Download</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Verify Email Section -->
+    <section class="auth-section">
+        <div class="auth-container">
+            <div class="auth-card">
+                <h1 class="auth-title" id="pageTitle">Verifying Your Email...</h1>
+                <p class="auth-subtitle" id="pageSubtitle">Please wait while we verify your email address</p>
+
+                <!-- Loading spinner -->
+                <div id="loadingSpinner" style="text-align: center; margin: 30px 0;">
+                    <div style="border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                </div>
+
+                <!-- Message display -->
+                <div id="verifyMessage" class="auth-message" style="display: none;"></div>
+
+                <!-- Action buttons (hidden initially) -->
+                <div id="actionButtons" style="display: none; margin-top: 20px;">
+                    <a href="login.html" class="btn btn-primary btn-large btn-full">Go to Sign In</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2026 MepSketcher. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- No external dependencies needed -->
+    
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
+    <script>
+        // Verify email on page load
+        async function verifyEmail() {
+            const pageTitle = document.getElementById('pageTitle');
+            const pageSubtitle = document.getElementById('pageSubtitle');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const verifyMessage = document.getElementById('verifyMessage');
+            const actionButtons = document.getElementById('actionButtons');
+
+            // Helper function to display messages
+            function showMessage(message, type) {
+                verifyMessage.textContent = message;
+                verifyMessage.className = `auth-message ${type}`;
+                verifyMessage.style.display = 'block';
+                loadingSpinner.style.display = 'none';
+            }
+
+            // Extract token from URL query parameter
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+
+            console.log('Verification page loaded with token:', token ? 'present' : 'missing');
+
+            // Validate token exists
+            if (!token) {
+                pageTitle.textContent = 'Invalid Link';
+                pageSubtitle.textContent = '';
+                showMessage('Invalid or missing verification token. Please check your email for the correct link.', 'error');
+                actionButtons.style.display = 'block';
+                return;
+            }
+
+            // Validate token format (should be 64 hex characters)
+            if (token.length !== 64 || !/^[0-9a-f]+$/i.test(token)) {
+                pageTitle.textContent = 'Invalid Link';
+                pageSubtitle.textContent = '';
+                showMessage('Invalid verification token format. Please check your email for the correct link.', 'error');
+                actionButtons.style.display = 'block';
+                return;
+            }
+
+            console.log('Valid token format detected, calling verification API...');
+
+            try {
+                // Call the Edge Function to verify email
+                const response = await fetch('https://jskwfvwbhyltmxcdsbnm.supabase.co/functions/v1/verify-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impza3dmdndiaHlsdG14Y2RzYm5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5ODA5MzIsImV4cCI6MjA2NzU1NjkzMn0.SE3xzj-1Qi2flWDtlGyyO2Gpp-fRFtoeA0W-ZYCVkvc`,
+                    },
+                    body: JSON.stringify({ token }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    // Check if already verified
+                    if (data.already_verified) {
+                        pageTitle.textContent = 'Already Verified';
+                        pageSubtitle.textContent = 'Your email has already been confirmed';
+                        showMessage('This email has already been verified. You can now log in to your account.', 'success');
+                    } else {
+                        pageTitle.textContent = 'Verification Failed';
+                        pageSubtitle.textContent = '';
+                        showMessage(data.error || 'Failed to verify email. Please try again.', 'error');
+                    }
+                } else {
+                    pageTitle.textContent = 'Email Verified!';
+                    pageSubtitle.textContent = 'Your account is now active';
+                    showMessage('Your email has been verified successfully! You can now log in to your account.', 'success');
+                }
+
+                // Show action buttons
+                actionButtons.style.display = 'block';
+
+            } catch (error) {
+                console.error('Verification error:', error);
+                pageTitle.textContent = 'Verification Error';
+                pageSubtitle.textContent = '';
+                showMessage('An unexpected error occurred. Please try again later.', 'error');
+                actionButtons.style.display = 'block';
+            }
+        }
+
+        // Start verification when DOM is ready
+        document.addEventListener('DOMContentLoaded', verifyEmail);
+    </script>
+</body>
+</html>

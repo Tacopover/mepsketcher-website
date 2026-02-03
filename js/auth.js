@@ -302,49 +302,21 @@ class AuthService {
         }
     }
 
-    // Reset password
-    async resetPassword(email) {
-        try {
-            const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/reset-password.html`
-            });
-
-            if (error) throw error;
-
-            return {
-                success: true,
-                message: 'Password reset email sent! Please check your inbox.'
-            };
-        } catch (error) {
-            console.error('Reset password error:', error);
-            return {
-                success: false,
-                error: error.message
-            };
-        }
-    }
-
-    // Update password (called from reset-password.html)
-    async updatePassword(newPassword) {
-        try {
-            const { data, error } = await this.supabase.auth.updateUser({
-                password: newPassword
-            });
-
-            if (error) throw error;
-
-            return {
-                success: true,
-                message: 'Password updated successfully!'
-            };
-        } catch (error) {
-            console.error('Update password error:', error);
-            return {
-                success: false,
-                error: error.message
-            };
-        }
-    }
+    // DEPRECATED: Password reset now handled by Edge Functions
+    // See: supabase/functions/reset-password-request/index.ts
+    // See: supabase/functions/confirm-password-reset/index.ts
+    // See: docs/PASSWORD_RESET_EDGE_FUNCTION_PLAN.md
+    // 
+    // The old Supabase resetPasswordForEmail method had issues with:
+    // - Token expiration
+    // - Limited email customization
+    // - Unreliable delivery
+    // 
+    // New flow:
+    // 1. User requests reset via login.html (calls edge function directly)
+    // 2. Edge function generates token, stores in DB, sends email via Resend
+    // 3. User clicks link with token in reset-password.html
+    // 4. reset-password.html calls confirm edge function to update password
 
     // Clear all Supabase authentication data
     clearAllSupabaseData() {
