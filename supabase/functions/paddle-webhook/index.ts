@@ -25,7 +25,7 @@ async function verifyPaddleSignature(
   body: string,
   timestamp: string,
   signature: string,
-  secret: string
+  secret: string,
 ): Promise<boolean> {
   // Paddle signature format: ts + : + body
   const payload = timestamp + ":" + body;
@@ -38,13 +38,13 @@ async function verifyPaddleSignature(
     keyData,
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["sign"]
+    ["sign"],
   );
 
   const signatureData = await crypto.subtle.sign(
     "HMAC",
     key,
-    encoder.encode(payload)
+    encoder.encode(payload),
   );
 
   const calculatedSignature = Array.from(new Uint8Array(signatureData))
@@ -79,12 +79,18 @@ function timingSafeEqual(a: ArrayBuffer, b: ArrayBuffer): boolean {
   return diff === 0;
 }
 Deno.serve(async (req) => {
+  // Log incoming request immediately for debugging
+  console.log("=== Webhook request received ===");
+  console.log("Method:", req.method);
+  console.log("URL:", req.url);
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const paddleWebhookSecret = Deno.env.get("PADDLE_WEBHOOK_SECRET")!;
 
     const bodyText = await req.text();
+    console.log("Body length:", bodyText.length, "characters");
 
     // Verify Paddle signature
     // Try both header name variations
@@ -96,7 +102,7 @@ Deno.serve(async (req) => {
       console.error("No Paddle signature header found");
       console.log(
         "Available headers:",
-        Object.fromEntries(req.headers.entries())
+        Object.fromEntries(req.headers.entries()),
       );
       return new Response("Unauthorized", { status: 401 });
     }
@@ -111,7 +117,7 @@ Deno.serve(async (req) => {
       bodyText,
       signatureData.timestamp,
       signatureData.signature,
-      paddleWebhookSecret
+      paddleWebhookSecret,
     );
 
     if (!isValid) {
@@ -132,7 +138,32 @@ Deno.serve(async (req) => {
         custom_data,
         customer,
         id: transactionId,
+        subscription_id: subscriptionId,
+        origin,
       } = transactionData;
+
+      // If this is a subscription update (adding licenses to existing subscription),
+      // the subscription.updated event will handle the database update.
+      // Skip processing here to avoid double-counting.
+      if (origin === "subscription_update") {
+        console.log(
+          `Transaction ${transactionId} is from subscription update - skipping license count update`,
+        );
+        console.log(
+          "The subscription.updated event will handle the license count",
+        );
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message:
+              "Transaction acknowledged - license count will be updated via subscription.updated event",
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+      }
 
       const quantity = items[0]?.quantity || 1;
       const userId = custom_data?.userId || custom_data?.user_id;
@@ -146,7 +177,7 @@ Deno.serve(async (req) => {
       }
 
       console.log(
-        `Processing purchase: ${quantity} license(s) for user ${userId}`
+        `Processing purchase: ${quantity} license(s) for user ${userId}`,
       );
 
       // 1. Determine organization ID (from custom_data or lookup)
@@ -156,7 +187,7 @@ Deno.serve(async (req) => {
       if (!organizationId) {
         // No organization ID provided, try to find existing membership
         console.log(
-          "No organizationId in custom_data, checking for existing membership"
+          "No organizationId in custom_data, checking for existing membership",
         );
         const { data: existingMember } = await supabase
           .from("organization_members")
@@ -168,7 +199,7 @@ Deno.serve(async (req) => {
           organizationId = existingMember.organization_id;
           console.log(
             "Found existing organization from membership:",
-            organizationId
+            organizationId,
           );
         }
       } else {
@@ -183,7 +214,7 @@ Deno.serve(async (req) => {
         const { data: existingMemberships } = await supabase
           .from("organization_members")
           .select(
-            "organization_id, organizations(id, name, is_personal_trial_org)"
+            "organization_id, organizations(id, name, is_personal_trial_org)",
           )
           .eq("user_id", userId)
           .eq("role", "owner")
@@ -192,7 +223,7 @@ Deno.serve(async (req) => {
         if (existingMemberships && existingMemberships.length > 0) {
           // Find personal trial org
           const personalTrialMembership = existingMemberships.find(
-            (m: any) => m.organizations?.is_personal_trial_org === true
+            (m: any) => m.organizations?.is_personal_trial_org === true,
           );
 
           if (
@@ -201,7 +232,7 @@ Deno.serve(async (req) => {
           ) {
             console.log(
               "Found personal trial org, will replace with real org:",
-              personalTrialMembership.organizations.id
+              personalTrialMembership.organizations.id,
             );
             oldPersonalOrgId = personalTrialMembership.organizations.id;
           }
@@ -236,7 +267,7 @@ Deno.serve(async (req) => {
         // If user had a personal trial org, remove them from it
         if (oldPersonalOrgId) {
           console.log(
-            "Removing user from personal trial org and marking it for cleanup"
+            "Removing user from personal trial org and marking it for cleanup",
           );
           // Update their membership status to inactive in the old org
           const { error: updateMemberError } = await supabase
@@ -268,7 +299,7 @@ Deno.serve(async (req) => {
 
       if (!membershipCheck) {
         console.log(
-          "User not in organization_members, attempting to add as admin"
+          "User not in organization_members, attempting to add as admin",
         );
 
         // First, try to insert the new membership
@@ -288,7 +319,7 @@ Deno.serve(async (req) => {
           // Check if it's a duplicate key error (user already exists)
           if (memberError.code === "23505") {
             console.log(
-              "User already in organization_members (duplicate key), updating instead"
+              "User already in organization_members (duplicate key), updating instead",
             );
 
             // Update the existing record
@@ -312,11 +343,11 @@ Deno.serve(async (req) => {
           } else {
             console.error(
               "Error adding user to organization_members:",
-              memberError
+              memberError,
             );
             // Don't throw - log and continue with license operations
             console.log(
-              "Continuing with license operations despite membership error"
+              "Continuing with license operations despite membership error",
             );
           }
         } else {
@@ -324,7 +355,7 @@ Deno.serve(async (req) => {
         }
       } else {
         console.log(
-          `User already in organization_members with role: ${membershipCheck.role}`
+          `User already in organization_members with role: ${membershipCheck.role}`,
         );
 
         // Update has_license flag if needed
@@ -361,15 +392,15 @@ Deno.serve(async (req) => {
           // (user bought additional licenses for the same period)
           newExpiryDate = existingLicense.expires_at;
           console.log(
-            `Prorated purchase: keeping existing expiry date ${newExpiryDate}`
+            `Prorated purchase: keeping existing expiry date ${newExpiryDate}`,
           );
         } else {
           // For regular purchases, extend by 1 year from now
           newExpiryDate = new Date(
-            Date.now() + 365 * 24 * 60 * 60 * 1000
+            Date.now() + 365 * 24 * 60 * 60 * 1000,
           ).toISOString();
           console.log(
-            `Standard purchase: setting new expiry date ${newExpiryDate}`
+            `Standard purchase: setting new expiry date ${newExpiryDate}`,
           );
         }
 
@@ -378,6 +409,7 @@ Deno.serve(async (req) => {
           .update({
             total_licenses: existingLicense.total_licenses + quantity,
             paddle_id: transactionId,
+            subscription_id: subscriptionId || existingLicense.subscription_id,
             updated_at: new Date().toISOString(),
             expires_at: newExpiryDate,
           })
@@ -391,7 +423,7 @@ Deno.serve(async (req) => {
         }
 
         console.log(
-          `Updated license: added ${quantity} licenses, total now: ${updatedLicense.total_licenses}`
+          `Updated license: added ${quantity} licenses, total now: ${updatedLicense.total_licenses}`,
         );
 
         return new Response(
@@ -406,7 +438,7 @@ Deno.serve(async (req) => {
           {
             status: 200,
             headers: { "Content-Type": "application/json" },
-          }
+          },
         );
       } else {
         // Create new license entry
@@ -418,8 +450,9 @@ Deno.serve(async (req) => {
             used_licenses: 1,
             license_type: "standard",
             paddle_id: transactionId,
+            subscription_id: subscriptionId,
             expires_at: new Date(
-              Date.now() + 365 * 24 * 60 * 60 * 1000
+              Date.now() + 365 * 24 * 60 * 60 * 1000,
             ).toISOString(),
           })
           .select()
@@ -441,7 +474,7 @@ Deno.serve(async (req) => {
         if (orgUpdateError) {
           console.error(
             "Error updating organization trial status:",
-            orgUpdateError
+            orgUpdateError,
           );
         } else {
           console.log("Organization marked as paid (trial ended)");
@@ -451,7 +484,7 @@ Deno.serve(async (req) => {
         if (oldPersonalOrgId) {
           console.log(
             "Deleting old personal trial organization:",
-            oldPersonalOrgId
+            oldPersonalOrgId,
           );
           const { error: deleteOrgError } = await supabase
             .from("organizations")
@@ -476,15 +509,80 @@ Deno.serve(async (req) => {
           {
             status: 200,
             headers: { "Content-Type": "application/json" },
-          }
+          },
         );
       }
+    }
+
+    // Handle subscription.updated event (for adding items to multi-item subscriptions)
+    if (event.event_type === "subscription.updated") {
+      const { data: subscriptionData } = event;
+      const { id: subscriptionId } = subscriptionData;
+
+      console.log(`Processing subscription update for ${subscriptionId}`);
+
+      // Find the organization with this subscription
+      const { data: license, error: findError } = await supabase
+        .from("organization_licenses")
+        .select("organization_id, total_licenses")
+        .eq("subscription_id", subscriptionId)
+        .maybeSingle();
+
+      if (findError) {
+        console.error("Error finding license by subscription_id:", findError);
+        return new Response("OK", { status: 200 }); // Still return 200 for webhook acknowledgment
+      }
+
+      if (!license) {
+        console.log(`No license found for subscription ${subscriptionId}`);
+        return new Response("OK", { status: 200 });
+      }
+
+      // Calculate total licenses from all items in the subscription
+      const totalLicenses =
+        (subscriptionData.items || []).reduce(
+          (sum: number, item: any) => sum + (item.quantity || 0),
+          0,
+        ) || 1;
+
+      console.log(
+        `Updating license for organization ${license.organization_id}: total_licenses ${license.total_licenses} -> ${totalLicenses}`,
+      );
+
+      // Update the total licenses in our database
+      const { error: updateError } = await supabase
+        .from("organization_licenses")
+        .update({
+          total_licenses: totalLicenses,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("subscription_id", subscriptionId);
+
+      if (updateError) {
+        console.error("Error updating license total:", updateError);
+        // Non-fatal - Paddle has the source of truth
+      } else {
+        console.log(`Successfully updated total_licenses to ${totalLicenses}`);
+      }
+
+      return new Response("OK", { status: 200 });
     }
 
     console.log("Event type not handled:", event.event_type);
     return new Response("OK", { status: 200 });
   } catch (error) {
+    console.error("=== WEBHOOK ERROR ===");
     console.error("Error processing webhook:", error);
+    console.error("Error type:", error?.constructor?.name);
+    console.error(
+      "Error message:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    console.error(
+      "Stack trace:",
+      error instanceof Error ? error.stack : "No stack trace",
+    );
+
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: errorMessage }), {

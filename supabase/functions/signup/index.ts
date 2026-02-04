@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     const { email, password, name, organizationName, invitationToken } =
       requestBody;
 
-    // Validate required fields
+    // Validate required fields (organizationName is optional, will be auto-generated)
     if (!email || !password || !name) {
       return new Response(
         JSON.stringify({
@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -161,18 +161,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 1: Create auth user using signUp (triggers confirmation email)
+    // Step 1: Create auth user using admin.createUser (no automatic email)
+    // We'll send a custom verification email via send-verification-email function
     const { data: authData, error: authError } =
-      await supabaseAdmin.auth.signUp({
+      await supabaseAdmin.auth.admin.createUser({
         email: email,
         password: password,
-        options: {
-          data: {
-            name: name,
-          },
-          emailRedirectTo: `${
-            Deno.env.get("SITE_URL") || "https://mepsketcher.com"
-          }/dashboard.html`,
+        email_confirm: false, // Don't auto-confirm, we'll use custom verification
+        user_metadata: {
+          name: name,
         },
       });
 
@@ -186,21 +183,36 @@ Deno.serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
     const userId = authData.user.id;
-    const emailConfirmed = authData.user.email_confirmed_at !== null;
 
-    console.log(`User created: ${userId}, Email confirmed: ${emailConfirmed}`);
+    console.log(`User created: ${userId}`);
 
-    // Step 2: Handle organization setup based on email confirmation status
-    if (emailConfirmed) {
-      // Email is confirmed - create everything immediately
-      console.log("Email confirmed - creating organization immediately");
+    // Step 2: For invitation-based signups, create everything immediately
+    // For regular signups, always require email verification via our custom flow
+    if (pendingInvitation) {
+      // User is accepting an invitation - confirm email and create everything immediately
+      console.log(
+        "Invitation-based signup - creating organization immediately",
+      );
 
       try {
+        // Confirm email for invitation-based signups (they don't need to verify via email)
+        const { error: confirmError } =
+          await supabaseAdmin.auth.admin.updateUserById(userId, {
+            email_confirm: true,
+          });
+
+        if (confirmError) {
+          console.error("Failed to confirm email:", confirmError);
+          // Continue anyway, this shouldn't block signup
+        } else {
+          console.log("Email confirmed for invitation-based signup");
+        }
+
         // 2a. Create user profile
         const { error: profileError } = await supabaseAdmin
           .from("user_profiles")
@@ -217,263 +229,178 @@ Deno.serve(async (req) => {
 
         console.log("User profile created");
 
-        // 2b. Check if user is accepting an invitation
-        if (pendingInvitation) {
-          console.log("Processing invitation acceptance");
+        // 2b. Accept invitation
+        // 2b. Accept invitation
+        console.log("Processing invitation acceptance");
 
-          try {
-            // Accept invitation - update to active and assign license
-            const { error: updateError } = await supabaseAdmin
-              .from("organization_members")
-              .update({
-                user_id: userId,
-                status: "active",
-                has_license: true, // Assign license to new member
-                accepted_at: new Date().toISOString(),
-                invite_token_hash: null, // Clear token hash
-                invite_token_sent_at: null,
-                invitation_expires_at: null,
-              })
-              .eq("id", pendingInvitation.id);
-
-            if (updateError) {
-              console.error("Error accepting invitation:", updateError);
-              throw new Error(
-                `Failed to accept invitation: ${updateError.message}`
-              );
-            }
-
-            console.log(
-              "Invitation accepted successfully and license assigned"
-            );
-
-            // Increment used licenses
-            const { data: license } = await supabaseAdmin
-              .from("organization_licenses")
-              .select("used_licenses")
-              .eq("organization_id", pendingInvitation.organization_id)
-              .single();
-
-            if (license) {
-              await supabaseAdmin
-                .from("organization_licenses")
-                .update({
-                  used_licenses: license.used_licenses + 1,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("organization_id", pendingInvitation.organization_id);
-
-              console.log("License count incremented");
-            }
-
-            // Get organization name for response message
-            const { data: org } = await supabaseAdmin
-              .from("organizations")
-              .select("name")
-              .eq("id", pendingInvitation.organization_id)
-              .single();
-
-            // Return success - user joined existing org
-            return new Response(
-              JSON.stringify({
-                success: true,
-                user: {
-                  id: userId,
-                  email: email,
-                  name: name,
-                  emailConfirmed: true,
-                },
-                requiresEmailConfirmation: false,
-                message: `Account created! You've joined ${
-                  org?.name || "the organization"
-                }.`,
-                joinedOrganization: true,
-                organizationId: pendingInvitation.organization_id,
-              } as SignUpResponse),
-              {
-                status: 200,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-              }
-            );
-          } catch (inviteError) {
-            console.error("Error processing invitation:", inviteError);
-            // Continue with normal organization creation if invitation fails
-          }
-        }
-
-        // 2c. Handle organization (no invitation or invitation failed)
-        const orgName =
-          organizationName?.trim() || `${email.split("@")[0]}'s Organization`;
-
-        // Check if organization already exists
-        const { data: existingOrgs, error: searchError } = await supabaseAdmin
-          .from("organizations")
-          .select("*")
-          .eq("name", orgName);
-
-        if (searchError) {
-          console.error("Failed to search organizations:", searchError);
-          throw new Error(`Organization search failed: ${searchError.message}`);
-        }
-
-        let organizationId: string;
-
-        if (existingOrgs && existingOrgs.length > 0) {
-          // Organization exists - add user as member
-          organizationId = existingOrgs[0].id;
-          console.log(`Joining existing organization: ${organizationId}`);
-
-          const { error: memberError } = await supabaseAdmin
+        try {
+          // Accept invitation - update to active and assign license
+          const { error: updateError } = await supabaseAdmin
             .from("organization_members")
-            .insert({
-              organization_id: organizationId,
+            .update({
               user_id: userId,
-              role: "member",
               status: "active",
               has_license: true, // Assign license to new member
               accepted_at: new Date().toISOString(),
-            });
+              invite_token_hash: null, // Clear token hash
+              invite_token_sent_at: null,
+              invitation_expires_at: null,
+            })
+            .eq("id", pendingInvitation.id);
 
-          if (memberError) {
-            console.error("Failed to add user to organization:", memberError);
+          if (updateError) {
+            console.error("Error accepting invitation:", updateError);
             throw new Error(
-              `Failed to join organization: ${memberError.message}`
+              `Failed to accept invitation: ${updateError.message}`,
             );
           }
 
-          console.log("User added to existing organization");
-        } else {
-          // Create new organization
-          // Mark as personal trial org since this is a single-user signup
-          const { data: newOrg, error: orgError } = await supabaseAdmin
-            .from("organizations")
-            .insert({
-              name: orgName,
-              owner_id: userId,
-              is_personal_trial_org: true, // Mark for cleanup if user joins another org
-            })
-            .select()
+          console.log("Invitation accepted successfully and license assigned");
+
+          // Increment used licenses
+          const { data: license } = await supabaseAdmin
+            .from("organization_licenses")
+            .select("used_licenses")
+            .eq("organization_id", pendingInvitation.organization_id)
             .single();
 
-          if (orgError || !newOrg) {
-            console.error("Failed to create organization:", orgError);
-            throw new Error(
-              `Organization creation failed: ${orgError?.message}`
-            );
+          if (license) {
+            await supabaseAdmin
+              .from("organization_licenses")
+              .update({
+                used_licenses: license.used_licenses + 1,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("organization_id", pendingInvitation.organization_id);
+
+            console.log("License count incremented");
           }
 
-          organizationId = newOrg.id;
-          console.log(
-            `Created new personal trial organization: ${organizationId}`
+          // Get organization name for response message
+          const { data: org } = await supabaseAdmin
+            .from("organizations")
+            .select("name")
+            .eq("id", pendingInvitation.organization_id)
+            .single();
+
+          // Return success - user joined existing org via invitation
+          return new Response(
+            JSON.stringify({
+              success: true,
+              user: {
+                id: userId,
+                email: email,
+                name: name,
+                emailConfirmed: true,
+              },
+              requiresEmailConfirmation: false,
+              message: `Account created! You've joined ${
+                org?.name || "the organization"
+              }.`,
+              joinedOrganization: true,
+              organizationId: pendingInvitation.organization_id,
+            } as SignUpResponse),
+            {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
           );
-
-          // Add user as admin
-          const { error: memberError } = await supabaseAdmin
-            .from("organization_members")
-            .insert({
-              organization_id: organizationId,
-              user_id: userId,
-              role: "owner",
-              status: "active",
-              has_license: true, // Assign license to organization owner
-              accepted_at: new Date().toISOString(),
-            });
-
-          if (memberError) {
-            console.error("Failed to add user as owner:", memberError);
-            throw new Error(
-              `Failed to add user as owner: ${memberError.message}`
-            );
-          }
-
-          console.log("User added as organization owner");
-        }
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            user: {
-              id: userId,
-              email: email,
-              name: name,
-              emailConfirmed: true,
+        } catch (inviteError) {
+          console.error("Error processing invitation:", inviteError);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: "Failed to process invitation. Please try again.",
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
             },
-            requiresEmailConfirmation: false,
-            message: "Account created successfully! You can now sign in.",
-          } as SignUpResponse),
-          {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+          );
+        }
       } catch (setupError) {
-        console.error("Organization setup error:", setupError);
-        return new Response(
-          JSON.stringify({
-            success: true, // User was created
-            user: {
-              id: userId,
-              email: email,
-              name: name,
-              emailConfirmed: true,
-            },
-            requiresEmailConfirmation: false,
-            message:
-              "Account created but organization setup incomplete. Please contact support.",
-          } as SignUpResponse),
-          {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        console.error("Invitation setup error:", setupError);
+        // Fall through to regular signup
       }
-    } else {
-      // Email NOT confirmed - create pending organization
-      console.log("Email not confirmed - creating pending organization");
-
-      const orgName =
-        organizationName?.trim() || `${email.split("@")[0]}'s Organization`;
-
-      try {
-        const { error: pendingError } = await supabaseAdmin
-          .from("pending_organizations")
-          .insert({
-            user_id: userId,
-            user_email: email,
-            user_name: name,
-            organization_name: orgName,
-          });
-
-        if (pendingError) {
-          console.error("Failed to create pending organization:", pendingError);
-          // Don't fail the signup, just log the error
-        } else {
-          console.log("Pending organization created");
-        }
-      } catch (pendingError) {
-        console.error("Pending organization error:", pendingError);
-        // Don't fail the signup
-      }
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          user: {
-            id: userId,
-            email: email,
-            name: name,
-            emailConfirmed: false,
-          },
-          requiresEmailConfirmation: true,
-          message:
-            "Account created! Please check your email to confirm your account before signing in.",
-        } as SignUpResponse),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
     }
+
+    // Step 3: Regular signup (no invitation) - always require email verification
+    console.log(
+      "Regular signup - creating pending organization and sending verification email",
+    );
+
+    const orgName = organizationName?.trim() || `${name}'s Organization`;
+
+    try {
+      const { error: pendingError } = await supabaseAdmin
+        .from("pending_organizations")
+        .insert({
+          user_id: userId,
+          user_email: email,
+          user_name: name,
+          organization_name: orgName,
+        });
+
+      if (pendingError) {
+        console.error("Failed to create pending organization:", pendingError);
+        // Don't fail the signup, just log the error
+      } else {
+        console.log("Pending organization created");
+      }
+    } catch (pendingError) {
+      console.error("Pending organization error:", pendingError);
+      // Don't fail the signup
+    }
+
+    // Send custom verification email via our edge function
+    console.log("Calling send-verification-email edge function...");
+    try {
+      const verificationResponse = await fetch(
+        `${supabaseUrl}/functions/v1/send-verification-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            email: email,
+            user_id: userId,
+            user_name: name,
+          }),
+        },
+      );
+
+      if (!verificationResponse.ok) {
+        const errorText = await verificationResponse.text();
+        console.error("Failed to send verification email:", errorText);
+        // Don't fail the signup, but log the error
+      } else {
+        console.log("Verification email sent successfully");
+      }
+    } catch (emailError) {
+      console.error("Error sending verification email:", emailError);
+      // Don't fail the signup
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        user: {
+          id: userId,
+          email: email,
+          name: name,
+          emailConfirmed: false,
+        },
+        requiresEmailConfirmation: true,
+        message:
+          "Account created! Please check your email to confirm your account before signing in.",
+      } as SignUpResponse),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (error) {
     console.error("Signup error:", error);
     const errorMessage =
@@ -487,7 +414,7 @@ Deno.serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });

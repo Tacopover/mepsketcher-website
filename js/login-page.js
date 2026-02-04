@@ -11,6 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const signupMessage = document.getElementById('signupMessage');
     const resetMessage = document.getElementById('resetMessage');
 
+    // Verify all required elements exist
+    if (!loginForm || !signupForm || !resetPasswordForm) {
+        console.error('Missing form elements:', { loginForm, signupForm, resetPasswordForm });
+        return;
+    }
+
     // Check for invitation token in URL
     const urlParams = new URLSearchParams(window.location.search);
     const invitationToken = urlParams.get('invitation_token');
@@ -35,15 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
         resetPasswordForm.classList.remove('active');
         signupForm.classList.add('active');
 
-        // Hide organization name field for trial users
-        const orgInput = document.getElementById('organizationName');
-        const orgGroup = orgInput.closest('.form-group');
-        if (orgGroup) {
-            orgGroup.style.display = 'none';
-            // Remove required attribute since field is hidden
-            orgInput.removeAttribute('required');
-        }
-
         // Show trial message
         showMessage(signupMessage, '🎉 Start your 14-day free trial! No credit card required.', 'info');
     }
@@ -60,27 +57,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Pre-fill email and make read-only
         const emailInput = document.getElementById('signupEmail');
-        emailInput.value = invitedEmail;
-        emailInput.readOnly = true;
-        emailInput.style.backgroundColor = '#f5f5f5';
-        emailInput.style.cursor = 'not-allowed';
-
-        // Pre-fill organization name and make read-only
-        const orgInput = document.getElementById('organizationName');
-        orgInput.value = invitedOrganization;
-        orgInput.readOnly = true;
-        orgInput.style.backgroundColor = '#f5f5f5';
-        orgInput.style.cursor = 'not-allowed';
-
-        // Update the organization hint text
-        const orgHint = orgInput.nextElementSibling;
-        if (orgHint && orgHint.classList.contains('form-hint')) {
-            orgHint.textContent = 'You are joining an existing organization';
-            orgHint.style.color = '#0066cc';
+        if (emailInput) {
+            emailInput.value = invitedEmail;
+            emailInput.readOnly = true;
+            emailInput.style.backgroundColor = '#f5f5f5';
+            emailInput.style.cursor = 'not-allowed';
+        } else {
+            console.error('signupEmail input element not found');
         }
 
-        // Show invitation message
-        showMessage(signupMessage, '✉️ You\'ve been invited to join an organization! Complete signup below.', 'info');
+        // Show invitation message (organization name no longer needs to be shown since we auto-generate it)
+        if (signupMessage) {
+            showMessage(signupMessage, `✉️ You've been invited to join ${invitedOrganization}! Complete signup below.`, 'info');
+        }
     }
 
     // Tab switching
@@ -100,16 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 loginForm.classList.add('active');
             } else if (targetTab === 'signup') {
                 signupForm.classList.add('active');
-                
-                // If not a trial signup, make sure organization field is visible and required
-                if (actionParam !== 'trial') {
-                    const orgInput = document.getElementById('organizationName');
-                    const orgGroup = orgInput.closest('.form-group');
-                    if (orgGroup) {
-                        orgGroup.style.display = '';
-                        orgInput.setAttribute('required', '');
-                    }
-                }
             }
             
             // Clear messages
@@ -177,11 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const name = document.getElementById('signupName').value;
         const email = document.getElementById('signupEmail').value;
-        const organizationNameInput = document.getElementById('organizationName');
-        // For trial signups, organization name field is hidden, so use null
-        const organizationName = organizationNameInput.closest('.form-group').style.display === 'none' 
-            ? null 
-            : organizationNameInput.value;
         const password = document.getElementById('signupPassword').value;
         const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
         const agreeTerms = document.getElementById('agreeTerms').checked;
@@ -206,11 +180,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const isTrial = actionParam === 'trial';
         showMessage(signupMessage, isTrial ? 'Creating your trial account...' : 'Creating account...', 'info');
         
+        // Pass null for organizationName (will be auto-generated from user's name)
         // Pass invitation token if present
-        const result = await authService.signUp(email, password, name, organizationName, invitationToken);
+        const result = await authService.signUp(email, password, name, null, invitationToken);
         
         if (result.success) {
-            if (isTrial) {
+            if (invitationToken) {
+                // Invitation-based signup - no email verification needed
+                showMessage(signupMessage, '✅ Account created! You can now sign in.', 'success');
+            } else if (isTrial) {
                 showMessage(signupMessage, '🎉 Trial account created! Please check your email to verify your account and start your 14-day free trial. The email may take a few minutes to arrive.', 'success');
             } else {
                 showMessage(signupMessage, 'Account created successfully! Please check your email to verify your account. The email may take a few minutes to arrive.', 'success');
@@ -219,10 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Clear form
             signupForm.reset();
             
-            // Switch to login tab after 3 seconds
+            // Switch to login tab after 3 seconds (or 1 second for invitation signups)
             setTimeout(() => {
                 tabButtons[0].click();
-            }, 3000);
+            }, invitationToken ? 1000 : 3000);
         } else {
             showMessage(signupMessage, `Error: ${result.error}`, 'error');
         }
@@ -232,17 +210,49 @@ document.addEventListener('DOMContentLoaded', () => {
     resetPasswordForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const email = document.getElementById('resetEmail').value;
+        const email = document.getElementById('resetEmail').value.trim();
         
-        showMessage(resetMessage, 'Sending reset link...', 'info');
+        // Validate email
+        if (!email) {
+            showMessage(resetMessage, 'Please enter your email address.', 'error');
+            return;
+        }
         
-        const result = await authService.resetPassword(email);
+        const submitBtn = resetPasswordForm.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending...';
         
-        if (result.success) {
-            showMessage(resetMessage, result.message, 'success');
+        try {
+            // Call the Edge Function to request password reset
+            const response = await fetch('https://jskwfvwbhyltmxcdsbnm.supabase.co/functions/v1/reset-password-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+                },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to request password reset');
+            }
+
+            showMessage(resetMessage, 'Password reset link sent! Please check your email.', 'success');
             resetPasswordForm.reset();
-        } else {
-            showMessage(resetMessage, `Error: ${result.error}`, 'error');
+            
+            // Keep form visible for user to return to login
+            setTimeout(() => {
+                backToLoginBtn.click();
+            }, 3000);
+        } catch (error) {
+            console.error('Password reset error:', error);
+            showMessage(resetMessage, error.message || 'Failed to send password reset link. Please try again.', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
         }
     });
 

@@ -141,7 +141,6 @@ class MepSketcherLicensing {
         alert('We are working on getting the license system up and running soon. Please go ahead and use the trial version for now');
         return;
 
-        /* ===== PADDLE CHECKOUT CODE (COMMENTED OUT - WILL BE RE-ENABLED LATER) =====
         if (!this.isInitialized) {
             console.error('Paddle not initialized');
             this.showError('Payment system unavailable. Please try again later.');
@@ -172,38 +171,39 @@ class MepSketcherLicensing {
 
         console.log('User is authenticated:', user.email);
 
-        // Get user's organization
+        // Get user's organization (prefer non-trial organization)
         console.log('Fetching user organization...');
         const { data: organizations, error: orgError } = await window.supabase
             .from('organizations')
-            .select('id')
+            .select('id, is_personal_trial_org')
             .eq('owner_id', user.id)
-            .single();
+            .order('is_personal_trial_org', { ascending: true }); // Get non-trial org first
 
-        if (orgError || !organizations) {
+        if (orgError || !organizations || organizations.length === 0) {
             console.error('Failed to fetch organization:', orgError);
             this.showError('Could not find your organization. Please contact support.');
             return;
         }
 
-        console.log('Found organization:', organizations.id);
+        // Use the real organization (not personal trial org if both exist)
+        const orgData = organizations[0];
+        console.log('Found organization:', orgData.id, '(trial org:', orgData.is_personal_trial_org, ')');
 
         // Check if organization has existing licenses
         console.log('Checking for existing licenses...');
         const { data: existingLicense, error: licenseError } = await window.supabase
             .from('organization_licenses')
             .select('*')
-            .eq('organization_id', organizations.id)
+            .eq('organization_id', orgData.id)
             .maybeSingle();
 
         if (licenseError && licenseError.code !== 'PGRST116') {
             console.error('Error checking licenses:', licenseError);
         }
 
-        let priceId;
         let customData = {
             userId: user.id,
-            organizationId: organizations.id,
+            organizationId: orgData.id,
             email: user.email,
             license_type: 'yearly',
             product: 'mepsketcher',
@@ -212,63 +212,45 @@ class MepSketcherLicensing {
             quantity: quantity
         };
 
-        // If user has existing licenses, create prorated price
-        if (existingLicense && existingLicense.expires_at) {
+        // Determine price ID for checkout
+        // Note: If user has existing active subscription, they should use
+        // the addLicensesToSubscription method instead of this one
+        let priceId;
+        
+        if (existingLicense && existingLicense.expires_at && existingLicense.subscription_id) {
             const expiresAt = new Date(existingLicense.expires_at);
             const now = new Date();
             
-            // Only prorate if license hasn't expired
             if (expiresAt > now) {
-                const remainingDays = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
-                console.log(`Existing license found with ${remainingDays} days remaining`);
-                
-                // Create custom prorated price
-                try {
-                    const { data: { session } } = await window.supabase.auth.getSession();
-                    const response = await fetch(`${window.supabase.supabaseUrl}/functions/v1/create-custom-price`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${session.access_token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            organizationId: organizations.id,
-                            quantity: quantity,
-                            remainingDays: remainingDays
-                        })
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        console.error('Failed to create custom price:', errorData);
-                        throw new Error(errorData.error || 'Failed to create prorated price');
-                    }
-
-                    const priceData = await response.json();
-                    console.log('Custom prorated price created:', priceData);
-                    
-                    priceId = priceData.priceId;
-                    customData.prorated = true;
-                    customData.remainingDays = remainingDays;
-                    customData.proratedAmount = priceData.amount;
-                } catch (error) {
-                    console.error('Error creating prorated price:', error);
-                    this.showError('Failed to calculate prorated price. Please try again or contact support.');
-                    return;
-                }
+                // User has active subscription - they should use addLicensesToSubscription instead
+                console.warn('User has active subscription. Use addLicensesToSubscription() instead of purchaseYearlyLicense()');
+                this.showError('You already have an active subscription. Please use the "Buy Now" button on your license card to add licenses.');
+                return;
             } else {
-                // License expired, use standard price
+                // License expired, use standard price for new purchase
                 console.log('Existing license has expired, using standard price');
                 priceId = PaddleConfig.products.yearly.id;
             }
+        } else if (existingLicense && !existingLicense.subscription_id) {
+            // License exists but no subscription_id (old system), fall through to create new checkout
+            console.log('Existing license has no subscription_id, will create new subscription via checkout');
+            priceId = PaddleConfig.products.yearly.id;
         } else {
             // No existing license, use standard price
             console.log('No existing license found, using standard price');
             priceId = PaddleConfig.products.yearly.id;
         }
 
+        // If we're here, we need to open checkout (either first purchase or license expired)
+        if (!priceId) {
+            // This shouldn't happen, but handle it gracefully
+            console.error('Unable to determine price ID');
+            this.showError('Unable to process purchase. Please try again.');
+            return;
+        }
+
         // Validate price ID
-        if (!priceId || !priceId.startsWith('pri_')) {
+        if (!priceId.startsWith('pri_')) {
             console.error('Invalid price ID:', priceId);
             this.showError('Configuration error: Invalid price ID. Please check your Paddle configuration.');
             return;
@@ -312,7 +294,59 @@ class MepSketcherLicensing {
             console.error('Failed to open checkout:', error);
             this.showError('Payment system unavailable. Please try again later.');
         }
-        ===== END PADDLE CHECKOUT CODE ===== */
+    }
+
+    /**
+     * Add licenses to an existing subscription
+     * This is called when a user with an active subscription wants to purchase additional licenses
+     * @param {number} quantity - Number of licenses to add
+     * @param {string} organizationId - The organization ID
+     * @param {string} subscriptionId - The Paddle subscription ID
+     */
+    async addLicensesToSubscription(quantity, organizationId, subscriptionId) {
+                // TEMPORARILY DISABLED: Show message instead of opening Paddle checkout
+        alert('We are working on getting the license system up and running soon. Please go ahead and use the trial version for now');
+        return;
+        console.log(`Adding ${quantity} licenses to subscription ${subscriptionId} for org ${organizationId}`);
+        
+        try {
+            const { data: { session } } = await window.supabase.auth.getSession();
+            const response = await fetch(`${window.supabase.supabaseUrl}/functions/v1/add-subscription-items`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    organizationId: organizationId,
+                    subscriptionId: subscriptionId,
+                    quantity: quantity
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Failed to add subscription items:', errorData);
+                throw new Error(errorData.error || 'Failed to add licenses to subscription');
+            }
+
+            const result = await response.json();
+            console.log('Subscription updated:', result);
+            
+            // Show success message to user
+            this.showSuccess('Licenses Added!', result.message);
+            
+            // Reload licenses on dashboard
+            if (window.loadLicenses) {
+                setTimeout(() => window.loadLicenses(), 2000);
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('Error adding to subscription:', error);
+            this.showError('Failed to add licenses. Please try again or contact support.');
+            throw error;
+        }
     }
 
     /**
