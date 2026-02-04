@@ -37,6 +37,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Setup edit organization name modal
     setupEditOrgNameModal();
+
+    // Setup purchase licenses modal
+    setupPurchaseLicensesModal();
 });
 
 // Load user data
@@ -669,6 +672,196 @@ function showEditOrgNameMessage(text, type) {
 // End Organization Name Edit Modal Functions
 // ============================================================================
 
+// ============================================================================
+// Purchase Additional Licenses Modal Functions
+// ============================================================================
+
+// Setup Purchase Licenses Modal (call this in DOMContentLoaded)
+function setupPurchaseLicensesModal() {
+    const modal = document.getElementById('purchaseLicensesModal');
+    const closeBtn = modal.querySelector('.close');
+    const cancelBtn = document.getElementById('cancelPurchaseLicenses');
+    const form = document.getElementById('purchaseLicensesForm');
+    const quantityInput = document.getElementById('licenseQuantity');
+
+    // Close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            closePurchaseLicensesModal();
+        });
+    }
+
+    // Cancel button
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            closePurchaseLicensesModal();
+        });
+    }
+
+    // Click outside to close
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closePurchaseLicensesModal();
+        }
+    });
+
+    // Update pricing when quantity changes
+    if (quantityInput) {
+        quantityInput.addEventListener('input', () => {
+            updatePricingPreview();
+        });
+    }
+
+    // Form submit
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handlePurchaseLicensesSubmit();
+        });
+    }
+}
+
+// Variable to store current license being purchased for
+let currentPurchaseLicense = null;
+
+// Open Purchase Licenses Modal
+function openPurchaseLicensesModal(license) {
+    if (!license) {
+        alert('Error: License not found');
+        return;
+    }
+
+    // Store the license for later use
+    currentPurchaseLicense = license;
+
+    // Reset quantity to 1
+    const quantityInput = document.getElementById('licenseQuantity');
+    quantityInput.value = 1;
+
+    // Update pricing preview
+    updatePricingPreview();
+
+    // Open modal
+    const modal = document.getElementById('purchaseLicensesModal');
+    modal.style.display = 'flex';
+    
+    // Focus quantity input
+    quantityInput.focus();
+    quantityInput.select();
+}
+
+// Close Purchase Licenses Modal
+function closePurchaseLicensesModal() {
+    const modal = document.getElementById('purchaseLicensesModal');
+    modal.style.display = 'none';
+    
+    // Reset form
+    document.getElementById('purchaseLicensesForm').reset();
+    
+    // Hide message
+    const messageDiv = document.getElementById('purchaseLicensesMessage');
+    messageDiv.style.display = 'none';
+    messageDiv.className = 'message';
+    
+    // Clear current license
+    currentPurchaseLicense = null;
+}
+
+// Update pricing preview in real-time
+function updatePricingPreview() {
+    if (!currentPurchaseLicense) return;
+
+    const quantityInput = document.getElementById('licenseQuantity');
+    const quantity = parseInt(quantityInput.value) || 1;
+
+    // Calculate remaining days
+    const expiresAt = new Date(currentPurchaseLicense.expires_at);
+    const now = new Date();
+    const remainingDays = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
+
+    // Calculate pricing (€200 base price per year)
+    const dailyRate = 200 / 365;
+    const pricePerLicense = Math.ceil(dailyRate * remainingDays * 100) / 100;
+    const totalCost = Math.ceil(pricePerLicense * quantity * 100) / 100;
+
+    // Update display
+    document.getElementById('remainingDaysDisplay').textContent = `${remainingDays} days`;
+    document.getElementById('pricePerLicenseDisplay').textContent = `€${pricePerLicense.toFixed(2)}`;
+    document.getElementById('quantityDisplay').textContent = quantity;
+    document.getElementById('totalCostDisplay').textContent = `€${totalCost.toFixed(2)}`;
+    document.getElementById('renewalDateDisplay').textContent = expiresAt.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+// Handle Purchase Licenses Form Submit
+async function handlePurchaseLicensesSubmit() {
+    if (!currentPurchaseLicense) {
+        showPurchaseLicensesMessage('Error: No license selected', 'error');
+        return;
+    }
+
+    const submitBtn = document.getElementById('submitPurchaseLicenses');
+    const quantityInput = document.getElementById('licenseQuantity');
+    const quantity = parseInt(quantityInput.value);
+
+    // Validation
+    if (isNaN(quantity) || quantity < 1 || quantity > 100) {
+        showPurchaseLicensesMessage('Please enter a valid quantity between 1 and 100', 'error');
+        return;
+    }
+
+    // Check if license has subscription_id
+    if (!currentPurchaseLicense.subscription_id) {
+        showPurchaseLicensesMessage('Error: No subscription found for this license', 'error');
+        return;
+    }
+
+    // Save license values before closing modal (closing sets currentPurchaseLicense to null)
+    const organizationId = currentPurchaseLicense.organization_id;
+    const subscriptionId = currentPurchaseLicense.subscription_id;
+
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Processing...';
+
+    try {
+        // Close modal
+        closePurchaseLicensesModal();
+        
+        // Call the dedicated add licenses function
+        if (typeof mepSketcherLicensing !== 'undefined') {
+            await mepSketcherLicensing.addLicensesToSubscription(
+                quantity,
+                organizationId,
+                subscriptionId
+            );
+        } else {
+            throw new Error('Payment system not available');
+        }
+    } catch (error) {
+        console.error('Error purchasing licenses:', error);
+        alert(`Error: ${error.message}`);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Purchase Licenses';
+    }
+}
+
+// Show message in purchase licenses modal
+function showPurchaseLicensesMessage(text, type) {
+    const messageDiv = document.getElementById('purchaseLicensesMessage');
+    messageDiv.textContent = text;
+    messageDiv.className = `message ${type}`;
+    messageDiv.style.display = 'block';
+}
+
+// ============================================================================
+// End Purchase Additional Licenses Modal Functions
+// ============================================================================
+
 // Handle adding a member to organization (LEGACY - replaced by modal)
 async function handleAddMember(orgId) {
     const emailInput = document.getElementById('newMemberEmail');
@@ -835,7 +1028,7 @@ async function loadAdminLicenses(user, userOrgs) {
     // Simple query: Get licenses for all user's organizations
     const { data: licenses, error: licensesError } = await authService.supabase
         .from('organization_licenses')
-        .select('id, organization_id, total_licenses, used_licenses, license_type, expires_at, created_at')
+        .select('id, organization_id, total_licenses, used_licenses, license_type, expires_at, created_at, subscription_id')
         .in('organization_id', uniqueOrgIds);
 
     if (licensesError) {
@@ -906,22 +1099,9 @@ function displayLicenses(licenses, organizations, isAdmin = true) {
                 <div class="empty-state-icon">📦</div>
                 <h3>No Licenses Yet</h3>
                 <p>Purchase licenses to start using MepSketcher</p>
-                <div class="license-purchase-form">
-                    <h4>Buy Licenses</h4>
-                    <div class="form-group">
-                        <label for="buyLicenseCount">Number of Licenses (1-1000)</label>
-                        <input type="number" 
-                               id="buyLicenseCount" 
-                               class="form-input" 
-                               min="1" 
-                               max="1000" 
-                               value="5" 
-                               placeholder="Enter number of licenses">
-                    </div>
-                    <button class="btn btn-primary" id="buyFirstLicenseBtn">
-                        Buy Licenses
-                    </button>
-                </div>
+                <button class="btn btn-primary" id="buyFirstLicenseBtn">
+                    Buy Now
+                </button>
             </div>
         `;
 
@@ -1089,82 +1269,15 @@ function createLicenseCard(license, orgName, isAdmin = true) {
 
 // Handle buying first license
 async function handleBuyFirstLicense() {
-    const countInput = document.getElementById('buyLicenseCount');
-    const count = parseInt(countInput.value);
-
-    if (!count || count < 1 || count > 1000) {
-        alert('Please enter a valid number of licenses (1-1000)');
-        return;
-    }
-
-    const user = authService.getCurrentUser();
-    if (!user) return;
-
-    // Step 1: Ensure organization exists (copied from performLicensePurchase)
-    const { data: userOrgs } = await authService.supabase
-        .from('organizations')
-        .select('*')
-        .eq('owner_id', user.id)
-        .limit(1);
-
-    let orgId;
-    if (!userOrgs || userOrgs.length === 0) {
-        const orgName = prompt('You need an organization first. Enter organization name:', `${user.email.split('@')[0]}'s Organization`);
-        if (!orgName) return;
-
-        const { data: newOrg, error: orgError } = await authService.supabase
-            .from('organizations')
-            .insert({
-                name: orgName,
-                owner_id: user.id,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
-            .select()
-            .single();
-
-        if (orgError) {
-            alert(`Error creating organization: ${orgError.message}`);
-            return;
-        }
-
-        orgId = newOrg.id;
-
-        // Add user as admin member
-        await authService.supabase
-            .from('organization_members')
-            .insert({
-                organization_id: orgId,
-                user_id: user.id,
-                role: 'admin',
-                status: 'active',
-                has_license: true,
-                accepted_at: new Date().toISOString(),
-                created_at: new Date().toISOString()
-            });
-
-        // Create user profile if needed
-        await authService.supabase
-            .from('user_profiles')
-            .upsert({
-                user_id: user.id,
-                email: user.email,
-                name: user.user_metadata?.name || user.email.split('@')[0],
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            });
-    } else {
-        orgId = userOrgs[0].id;
-    }
-
-    // Step 2: Open Paddle checkout (similar to homepage and handleBuyMoreLicenses)
+    // Check if Paddle is available
     if (typeof mepSketcherLicensing === 'undefined' || !mepSketcherLicensing) {
         alert('Payment system not available. Please try again later.');
+        console.error('mepSketcherLicensing not initialized');
         return;
     }
 
-    // Pass the license count to Paddle (adjust if Paddle config needs orgId or other params)
-    mepSketcherLicensing.purchaseYearlyLicense(count);
+    // Call purchase function directly - user will specify quantity in Paddle checkout
+    mepSketcherLicensing.purchaseYearlyLicense(1);
 }
 
 // Handle adding licenses to existing license
@@ -1341,36 +1454,8 @@ function handleBuyMoreLicenses(license) {
         return;
     }
 
-    // // Prompt for quantity of additional licenses
-    // const quantityStr = prompt('How many additional licenses would you like to purchase?', '1');
-    // if (!quantityStr) {
-    //     return; // User cancelled
-    // }
-
-    const quantity = 1;
-    // if (isNaN(quantity) || quantity < 1 || quantity > 1000) {
-    //     alert('Please enter a valid number between 1 and 1000');
-    //     return;
-    // }
-
-    // Calculate remaining days for prorated pricing
-    const expiresAt = new Date(license.expires_at);
-    const now = new Date();
-    const remainingDays = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
-
-    if (remainingDays > 0) {
-        // Show confirmation with prorated info
-        const dailyRate = 200 / 365; // $200 per year / 365 days
-        const totalCost = Math.ceil(dailyRate * remainingDays * quantity * 100) / 100;
-        const message = `You are purchasing additional license(s) for the remaining ${remainingDays} days of your current license period.\n\nEstimated cost per license: ${totalCost.toFixed(2)} \n\n(This is prorated based on your existing license expiry date)`;
-        
-        if (!confirm(message)) {
-            return; // User cancelled
-        }
-    }
-
-    // Open Paddle checkout for purchasing additional licenses with specified quantity
-    mepSketcherLicensing.purchaseYearlyLicense(1);
+    // Open the purchase licenses modal with pricing preview
+    openPurchaseLicensesModal(license);
 }
 
 // Handle extend license
