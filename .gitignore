@@ -208,3 +208,11 @@ DATABASE_PERSONAL_TRIAL_ORG.sql
 docs/PERSONAL_TRIAL_ORG_IMPLEMENTATION.md
 docs/TRIAL_FLOW_SCHEMA_ANALYSIS.md
 docs/TRIAL_USER_DEPLOYMENT_CHECKLIST.md
+# Generated schema files
+docs/SUPABASE_SCHEMA.json
+
+# Implementation planning documents
+docs/implementation-plans/
+
+# Database migration files
+supabase/migrations/*.sql
