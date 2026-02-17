@@ -524,7 +524,7 @@ Deno.serve(async (req) => {
       // Find the organization with this subscription
       const { data: license, error: findError } = await supabase
         .from("organization_licenses")
-        .select("organization_id, total_licenses")
+        .select("organization_id, total_licenses, scheduled_total_licenses")
         .eq("subscription_id", subscriptionId)
         .maybeSingle();
 
@@ -549,13 +549,28 @@ Deno.serve(async (req) => {
         `Updating license for organization ${license.organization_id}: total_licenses ${license.total_licenses} -> ${totalLicenses}`,
       );
 
+      // Prepare update data
+      const updateData: any = {
+        total_licenses: totalLicenses,
+        updated_at: new Date().toISOString(),
+      };
+
+      // If there was a scheduled change and the new total matches it, clear the scheduling fields
+      // This happens when apply-scheduled-license-changes updates Paddle and the webhook confirms it
+      if (
+        license.scheduled_total_licenses !== null &&
+        totalLicenses === license.scheduled_total_licenses
+      ) {
+        console.log(`Scheduled change applied: clearing scheduling fields`);
+        updateData.scheduled_total_licenses = null;
+        updateData.scheduled_change_at = null;
+        updateData.scheduled_change_note = null;
+      }
+
       // Update the total licenses in our database
       const { error: updateError } = await supabase
         .from("organization_licenses")
-        .update({
-          total_licenses: totalLicenses,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("subscription_id", subscriptionId);
 
       if (updateError) {
@@ -563,6 +578,54 @@ Deno.serve(async (req) => {
         // Non-fatal - Paddle has the source of truth
       } else {
         console.log(`Successfully updated total_licenses to ${totalLicenses}`);
+      }
+
+      return new Response("OK", { status: 200 });
+    }
+
+    // Handle subscription.canceled event
+    if (event.event_type === "subscription.canceled") {
+      const { data: subscriptionData } = event;
+      const { id: subscriptionId } = subscriptionData;
+
+      console.log(`Processing subscription cancellation for ${subscriptionId}`);
+
+      // Find the license with this subscription
+      const { data: license, error: findError } = await supabase
+        .from("organization_licenses")
+        .select("*")
+        .eq("subscription_id", subscriptionId)
+        .maybeSingle();
+
+      if (findError) {
+        console.error("Error finding license by subscription_id:", findError);
+        return new Response("OK", { status: 200 });
+      }
+
+      if (!license) {
+        console.log(`No license found for subscription ${subscriptionId}`);
+        return new Response("OK", { status: 200 });
+      }
+
+      // Update license to mark as canceled
+      const { error: updateError } = await supabase
+        .from("organization_licenses")
+        .update({
+          license_type: "cancelled",
+          total_licenses: 0,
+          scheduled_total_licenses: null,
+          scheduled_change_at: null,
+          scheduled_change_note: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("subscription_id", subscriptionId);
+
+      if (updateError) {
+        console.error("Error updating canceled license:", updateError);
+      } else {
+        console.log(
+          `Successfully marked license as canceled for subscription ${subscriptionId}`,
+        );
       }
 
       return new Response("OK", { status: 200 });

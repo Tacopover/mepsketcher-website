@@ -124,6 +124,10 @@ serve(async (req) => {
       // Don't fail the request since email was already verified
     }
 
+    // NOTE: Do NOT delete pending_organizations entry here
+    // The signin function will process pending organizations and delete them
+    // after successfully creating the user's organization
+
     console.log(`Email successfully verified for user: ${tokenData.email}`);
 
     return new Response(

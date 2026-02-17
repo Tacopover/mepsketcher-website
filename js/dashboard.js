@@ -40,6 +40,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Setup purchase licenses modal
     setupPurchaseLicensesModal();
+
+    // Setup license management modal
+    setupLicenseManagementModal();
 });
 
 // Load user data
@@ -862,6 +865,398 @@ function showPurchaseLicensesMessage(text, type) {
 // End Purchase Additional Licenses Modal Functions
 // ============================================================================
 
+// ============================================================================
+// License Management Modal Functions (Add/Reduce Licenses)
+// ============================================================================
+
+// Setup License Management Modal (call this in DOMContentLoaded)
+function setupLicenseManagementModal() {
+    const modal = document.getElementById('licenseManagementModal');
+    const closeBtn = modal?.querySelector('.close');
+    const cancelBtn = document.getElementById('cancelLicenseManagement');
+    const form = document.getElementById('licenseManagementForm');
+    const quantityInput = document.getElementById('newLicenseQuantity');
+    const incrementBtn = document.getElementById('incrementLicenses');
+    const decrementBtn = document.getElementById('decrementLicenses');
+
+    if (!modal) return; // Modal not found, skip setup
+
+    // Close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            closeLicenseManagementModal();
+        });
+    }
+
+    // Cancel button
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            closeLicenseManagementModal();
+        });
+    }
+
+    // Click outside to close
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeLicenseManagementModal();
+        }
+    });
+
+    // Increment/Decrement buttons
+    if (incrementBtn && quantityInput) {
+        incrementBtn.addEventListener('click', () => {
+            const currentValue = parseInt(quantityInput.value) || 0;
+            quantityInput.value = Math.min(currentValue + 1, 200);
+            updateLicenseChangePreview();
+        });
+    }
+
+    if (decrementBtn && quantityInput) {
+        decrementBtn.addEventListener('click', () => {
+            const currentValue = parseInt(quantityInput.value) || 0;
+            quantityInput.value = Math.max(currentValue - 1, 0);
+            updateLicenseChangePreview();
+        });
+    }
+
+    // Update preview when quantity changes
+    if (quantityInput) {
+        quantityInput.addEventListener('input', () => {
+            updateLicenseChangePreview();
+        });
+    }
+
+    // Form submit
+    if (form) {
+        form.addEventListener('submit', handleLicenseManagementSubmit);
+    }
+}
+
+// Variable to store current license being managed
+let currentManagedLicense = null;
+
+// Open License Management Modal
+function openLicenseManagementModal(license) {
+    if (!license) {
+        alert('Error: License not found');
+        return;
+    }
+
+    // Store the license for later use
+    currentManagedLicense = license;
+
+    // Populate current status
+    document.getElementById('currentTotalLicenses').textContent = license.total_licenses || 0;
+    document.getElementById('currentUsedLicenses').textContent = license.used_licenses || 0;
+    document.getElementById('currentAvailableLicenses').textContent = (license.total_licenses - license.used_licenses) || 0;
+    
+    const expiresAt = new Date(license.expires_at);
+    document.getElementById('currentExpirationDate').textContent = expiresAt.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    // Set initial quantity to current total
+    const quantityInput = document.getElementById('newLicenseQuantity');
+    quantityInput.value = license.total_licenses || 0;
+
+    // Update preview
+    updateLicenseChangePreview();
+
+    // Open modal
+    const modal = document.getElementById('licenseManagementModal');
+    modal.style.display = 'flex';
+    
+    // Focus quantity input
+    quantityInput.focus();
+    quantityInput.select();
+}
+
+// Close License Management Modal
+function closeLicenseManagementModal() {
+    const modal = document.getElementById('licenseManagementModal');
+    modal.style.display = 'none';
+    
+    // Reset form
+    document.getElementById('licenseManagementForm').reset();
+    
+    // Hide message
+    const messageDiv = document.getElementById('licenseManagementMessage');
+    messageDiv.style.display = 'none';
+    messageDiv.className = 'message';
+    
+    // Clear current license
+    currentManagedLicense = null;
+}
+
+// Calculate and display license change preview
+function updateLicenseChangePreview() {
+    if (!currentManagedLicense) return;
+
+    const newQuantity = parseInt(document.getElementById('newLicenseQuantity').value) || 0;
+    const currentTotal = currentManagedLicense.total_licenses;
+    const usedLicenses = currentManagedLicense.used_licenses;
+    
+    // Calculate change
+    const change = newQuantity - currentTotal;
+    const isIncrease = change > 0;
+    const isDecrease = change < 0;
+    const noChange = change === 0;
+
+    // Dates
+    const expiresAt = new Date(currentManagedLicense.expires_at);
+    const now = new Date();
+    const remainingDays = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
+    
+    // Pricing calculations
+    const annualPricePerLicense = 200; // €200 per license per year
+    const dailyRate = annualPricePerLicense / 365;
+
+    // Get preview container
+    const previewDiv = document.getElementById('changePreview');
+    const warningDiv = document.getElementById('reductionWarning');
+    const warningMessage = document.getElementById('warningMessage');
+    const submitBtn = document.getElementById('submitLicenseManagement');
+
+    // Handle changes
+    if (isDecrease && newQuantity === 0) {
+        previewDiv.style.background = '#fff3cd';
+        previewDiv.style.borderLeftColor = '#e67e22';
+        previewDiv.innerHTML = `
+            <h3 style="margin: 0 0 10px; font-size: 16px; color: #856404;">⚠ Subscription Cancellation</h3>
+            <p style="margin: 0 0 8px; color: #856404;">Your subscription will be <strong>canceled</strong> at renewal on <strong>${expiresAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</strong>.</p>
+            <p style="margin: 0; color: #856404; font-size: 14px;">• All ${currentTotal} license${currentTotal !== 1 ? 's' : ''} will be removed</p>
+            <p style="margin: 5px 0 0; color: #856404; font-size: 14px;">• No future charges</p>
+            <p style="margin: 5px 0 0; color: #856404; font-size: 14px;">• Data preserved for 90 days after expiration</p>
+        `;
+        
+        if (usedLicenses > 0) {
+            warningDiv.style.display = 'block';
+            warningMessage.textContent = `You have ${usedLicenses} assigned license${usedLicenses !== 1 ? 's' : ''}. All members will lose access when the subscription expires on ${expiresAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`;
+        } else {
+            warningDiv.style.display = 'none';
+        }
+        
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Schedule Cancellation';
+        return;
+    }
+
+    // Handle no change
+    if (noChange) {
+        previewDiv.style.background = '#f8f9fa';
+        previewDiv.style.borderLeftColor = '#6c757d';
+        previewDiv.innerHTML = `
+            <p style="margin: 0; color: #6c757d;">No changes to apply. Adjust the license count or check "Cancel at renewal" to make changes.</p>
+        `;
+        warningDiv.style.display = 'none';
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Confirm Changes';
+        return;
+    }
+
+    // Handle license increase (immediate with prorated charge)
+    if (isIncrease) {
+        const proratedPricePerLicense = Math.ceil(dailyRate * remainingDays * 100) / 100;
+        const totalCost = Math.ceil(proratedPricePerLicense * Math.abs(change) * 100) / 100;
+        const nextRenewalCost = annualPricePerLicense * newQuantity;
+
+        previewDiv.style.background = '#d4edda';
+        previewDiv.style.borderLeftColor = '#28a745';
+        previewDiv.innerHTML = `
+            <h3 style="margin: 0 0 10px; font-size: 16px; color: #155724;">✓ Adding ${Math.abs(change)} License${Math.abs(change) !== 1 ? 's' : ''}</h3>
+            <div style="margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: #155724;">New total:</span>
+                    <strong style="color: #155724;">${newQuantity} license${newQuantity !== 1 ? 's' : ''}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: #155724;">Effective:</span>
+                    <strong style="color: #155724;">Immediately</strong>
+                </div>
+            </div>
+            <div style="background: white; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span>Prorated cost (${remainingDays} days):</span>
+                    <strong>€${proratedPricePerLicense.toFixed(2)} per license</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; padding-top: 6px; border-top: 1px solid #ddd; font-size: 16px;">
+                    <span>Charge today:</span>
+                    <strong style="color: #007bff;">€${totalCost.toFixed(2)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 10px; padding-top: 8px; border-top: 1px solid #ddd;">
+                    <span style="font-size: 14px;">Next renewal (${expiresAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}):</span>
+                    <strong style="font-size: 14px;">€${nextRenewalCost.toFixed(2)}/year</strong>
+                </div>
+            </div>
+        `;
+        warningDiv.style.display = 'none';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Add Licenses Now';
+        return;
+    }
+
+    // Handle license reduction (scheduled for renewal)
+    if (isDecrease) {
+        const nextRenewalCost = annualPricePerLicense * newQuantity;
+        const annualSavings = annualPricePerLicense * Math.abs(change);
+        const belowUsed = newQuantity < usedLicenses;
+
+        previewDiv.style.background = '#fff3cd';
+        previewDiv.style.borderLeftColor = '#ffc107';
+        previewDiv.innerHTML = `
+            <h3 style="margin: 0 0 10px; font-size: 16px; color: #856404;">Reducing ${Math.abs(change)} License${Math.abs(change) !== 1 ? 's' : ''}</h3>
+            <div style="margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: #856404;">New total:</span>
+                    <strong style="color: #856404;">${newQuantity} license${newQuantity !== 1 ? 's' : ''}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: #856404;">Effective:</span>
+                    <strong style="color: #856404;">At renewal (${expiresAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})</strong>
+                </div>
+            </div>
+            <div style="background: white; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span>Charge today:</span>
+                    <strong>€0.00</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; padding-top: 6px; border-top: 1px solid #ddd;">
+                    <span>Next renewal cost:</span>
+                    <strong style="color: #007bff;">€${nextRenewalCost.toFixed(2)}/year</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-top: 6px; border-top: 1px solid #ddd;">
+                    <span style="color: #28a745;">Annual savings:</span>
+                    <strong style="color: #28a745;">€${annualSavings.toFixed(2)}/year</strong>
+                </div>
+            </div>
+        `;
+
+        // Show warning if reducing below used count
+        if (belowUsed) {
+            const membersToUnassign = usedLicenses - newQuantity;
+            warningDiv.style.display = 'block';
+            warningMessage.textContent = `You currently have ${usedLicenses} assigned license${usedLicenses !== 1 ? 's' : ''} but are reducing to ${newQuantity}. You'll need to unassign ${membersToUnassign} member${membersToUnassign !== 1 ? 's' : ''} before ${expiresAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, or their access will be automatically revoked.`;
+        } else {
+            warningDiv.style.display = 'none';
+        }
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Schedule Reduction';
+        return;
+    }
+}
+
+// Handle License Management Form Submit
+async function handleLicenseManagementSubmit(event) {
+    event.preventDefault();
+    
+    if (!currentManagedLicense) {
+        showLicenseManagementMessage('Error: No license selected', 'error');
+        return;
+    }
+
+    const submitBtn = document.getElementById('submitLicenseManagement');
+    const quantityInput = document.getElementById('newLicenseQuantity');
+    const newQuantity = parseInt(quantityInput.value);
+    const currentTotal = currentManagedLicense.total_licenses;
+
+    // Validation
+    if (isNaN(newQuantity) || newQuantity < 0 || newQuantity > 200) {
+        showLicenseManagementMessage('Please enter a valid quantity between 0 and 200', 'error');
+        return;
+    }
+
+    // Check if no change
+    if (newQuantity === currentTotal) {
+        showLicenseManagementMessage('No changes to apply', 'error');
+        return;
+    }
+
+    // Check if license has subscription_id for increases
+    if (newQuantity > currentTotal && !currentManagedLicense.subscription_id) {
+        showLicenseManagementMessage('Error: No active subscription found for this license', 'error');
+        return;
+    }
+
+    // Confirmation for cancellation
+    if (newQuantity === 0) {
+        const confirmed = confirm('Are you sure you want to cancel your subscription? All licenses will be removed at renewal.');
+        if (!confirmed) return;
+    }
+
+    // Disable submit button
+    submitBtn.disabled = true;
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Processing...';
+
+    try {
+        const change = newQuantity - currentTotal;
+        
+        // Handle increase (immediate)
+        if (change > 0) {
+            if (typeof mepSketcherLicensing !== 'undefined') {
+                await mepSketcherLicensing.addLicensesToSubscription(
+                    change,
+                    currentManagedLicense.organization_id,
+                    currentManagedLicense.subscription_id
+                );
+                // Close modal and reload
+                closeLicenseManagementModal();
+                await loadLicenses();
+            } else {
+                throw new Error('Payment system not available');
+            }
+        }
+        // Handle decrease or cancellation (scheduled)
+        else if (change < 0) {
+            // Call schedule-license-change edge function
+            const { data, error } = await authService.supabase.functions.invoke('schedule-license-change', {
+                body: {
+                    organizationId: currentManagedLicense.organization_id,
+                    newQuantity: newQuantity,
+                    effectiveDate: currentManagedLicense.expires_at
+                }
+            });
+
+            if (error) throw error;
+
+            // Show success message
+            const expiresAt = new Date(currentManagedLicense.expires_at);
+            let message;
+            if (newQuantity === 0) {
+                message = `Subscription cancellation scheduled for ${expiresAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+            } else {
+                message = `License reduction to ${newQuantity} scheduled for ${expiresAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+            }
+            
+            alert(message);
+            
+            // Close modal and reload
+            closeLicenseManagementModal();
+            await loadLicenses();
+        }
+    } catch (error) {
+        console.error('Error managing licenses:', error);
+        showLicenseManagementMessage(`Error: ${error.message}`, 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+// Show message in license management modal
+function showLicenseManagementMessage(text, type) {
+    const messageDiv = document.getElementById('licenseManagementMessage');
+    messageDiv.textContent = text;
+    messageDiv.className = `message ${type}`;
+    messageDiv.style.display = 'block';
+}
+
+// ============================================================================
+// End License Management Modal Functions
+// ============================================================================
+
 // Handle adding a member to organization (LEGACY - replaced by modal)
 async function handleAddMember(orgId) {
     const emailInput = document.getElementById('newMemberEmail');
@@ -1205,11 +1600,25 @@ function createLicenseCard(license, orgName, isAdmin = true) {
 
     const availableLicenses = license.total_licenses - license.used_licenses;
 
+    // Check for scheduled changes
+    const hasScheduledChange = license.scheduled_total_licenses !== null && license.scheduled_total_licenses !== undefined;
+    const scheduledChangeDate = hasScheduledChange && license.scheduled_change_at 
+        ? new Date(license.scheduled_change_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : null;
+    const isIncrease = hasScheduledChange && license.scheduled_total_licenses > license.total_licenses;
+    const isDecrease = hasScheduledChange && license.scheduled_total_licenses < license.total_licenses;
+    const changeClass = isIncrease ? 'scheduled-increase' : isDecrease ? 'scheduled-decrease' : '';
+
     card.innerHTML = `
         <div class="license-card-header">
             <div>
                 <h3 class="license-org-name">${orgName}</h3>
                 <span class="license-type-badge">${(license.license_type || 'starter').toUpperCase()}</span>
+                ${hasScheduledChange ? `
+                    <span class="scheduled-change-badge ${changeClass}">
+                        ${isIncrease ? '↑' : isDecrease ? '↓' : '→'} ${license.scheduled_total_licenses} at renewal
+                    </span>
+                ` : ''}
             </div>
             <span class="license-status-badge ${statusClass}">${statusText}</span>
         </div>
@@ -1231,13 +1640,22 @@ function createLicenseCard(license, orgName, isAdmin = true) {
                 <span class="stat-value">${formattedExpiry}</span>
             </div>
         </div>
+        ${hasScheduledChange ? `
+            <div class="scheduled-change-info">
+                <p class="scheduled-change-text">
+                    ${isDecrease ? '⚠' : '✓'} Scheduled: ${license.scheduled_total_licenses} license${license.scheduled_total_licenses !== 1 ? 's' : ''} on ${scheduledChangeDate}
+                    ${isDecrease && license.scheduled_total_licenses < license.used_licenses ? 
+                        `<br><small style="color: #e67e22;">Note: You'll need to unassign ${license.used_licenses - license.scheduled_total_licenses} member${license.used_licenses - license.scheduled_total_licenses !== 1 ? 's' : ''} before renewal.</small>` 
+                        : ''}
+                </p>
+            </div>
+        ` : ''}
         ${isAdmin ? `
             <div class="license-actions-section">
-                <div class="purchase-licenses-section">
-                    <p class="purchase-text">Purchase additional licenses</p>
-                    <button class="btn btn-primary btn-small buy-licenses-btn" 
+                <div class="manage-licenses-section">
+                    <button class="btn btn-primary btn-small manage-licenses-btn" 
                             data-license-id="${license.id}">
-                        Buy Now
+                        Manage Licenses
                     </button>
                 </div>
                 <div class="license-actions-buttons">
@@ -1249,10 +1667,10 @@ function createLicenseCard(license, orgName, isAdmin = true) {
 
     // Add event listeners only for admin
     if (isAdmin) {
-        const buyBtn = card.querySelector('.buy-licenses-btn');
-        if (buyBtn) {
-            buyBtn.addEventListener('click', () => {
-                handleBuyMoreLicenses(license);
+        const manageBtn = card.querySelector('.manage-licenses-btn');
+        if (manageBtn) {
+            manageBtn.addEventListener('click', () => {
+                openLicenseManagementModal(license);
             });
         }
 

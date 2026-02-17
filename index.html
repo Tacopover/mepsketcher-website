@@ -353,6 +353,12 @@
     <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
     
     <!-- MepSketcher Scripts -->
+    <!-- Environment selector MUST be loaded first -->
+    <script src="js/paddle-environment.js"></script>
+    <!-- Paddle config files loaded automatically based on environment -->
+    <script src="js/paddle-config.sandbox.js"></script>
+    <script src="js/paddle-config.production.js"></script>
+    <!-- Main config wrapper that selects appropriate config -->
     <script src="js/paddle-config.js"></script>
     <script src="js/paddle.js"></script>
     <script src="js/pricing.js"></script>
