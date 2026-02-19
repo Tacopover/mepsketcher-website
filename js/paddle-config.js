@@ -47,12 +47,13 @@ function initializePaddle(eventCallback = null) {
     }
     
     try {
-        // Set environment BEFORE initializing (required for sandbox)
+        // Set environment BEFORE initializing (required for proper routing)
         if (PaddleConfig.environment === 'sandbox') {
             Paddle.Environment.set("sandbox");
             console.log('Paddle environment set to SANDBOX');
-        } else {
-            console.log('Paddle environment set to PRODUCTION (default)');
+        } else if (PaddleConfig.environment === 'production') {
+            Paddle.Environment.set("production");
+            console.log('Paddle environment set to PRODUCTION');
         }
         
         // Initialize Paddle.js v2 with client-side token and event callback
