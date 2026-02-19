@@ -180,29 +180,34 @@ document.addEventListener('DOMContentLoaded', () => {
         const isTrial = actionParam === 'trial';
         showMessage(signupMessage, isTrial ? 'Creating your trial account...' : 'Creating account...', 'info');
         
-        // Pass null for organizationName (will be auto-generated from user's name)
-        // Pass invitation token if present
-        const result = await authService.signUp(email, password, name, null, invitationToken);
-        
-        if (result.success) {
-            if (invitationToken) {
-                // Invitation-based signup - no email verification needed
-                showMessage(signupMessage, '✅ Account created! You can now sign in.', 'success');
-            } else if (isTrial) {
-                showMessage(signupMessage, '🎉 Trial account created! Please check your email to verify your account and start your 14-day free trial. The email may take a few minutes to arrive.', 'success');
+        try {
+            // Pass null for organizationName (will be auto-generated from user's name)
+            // Pass invitation token if present
+            const result = await authService.signUp(email, password, name, null, invitationToken);
+            
+            if (result.success) {
+                if (invitationToken) {
+                    // Invitation-based signup - no email verification needed
+                    showMessage(signupMessage, '✅ Account created! You can now sign in.', 'success');
+                } else if (isTrial) {
+                    showMessage(signupMessage, '🎉 Trial account created! Please check your email to verify your account and start your 14-day free trial. The email may take a few minutes to arrive.', 'success');
+                } else {
+                    showMessage(signupMessage, 'Account created successfully! Please check your email to verify your account. The email may take a few minutes to arrive.', 'success');
+                }
+                
+                // Clear form
+                signupForm.reset();
+                
+                // Switch to login tab after 3 seconds (or 1 second for invitation signups)
+                setTimeout(() => {
+                    tabButtons[0].click();
+                }, invitationToken ? 1000 : 3000);
             } else {
-                showMessage(signupMessage, 'Account created successfully! Please check your email to verify your account. The email may take a few minutes to arrive.', 'success');
+                showMessage(signupMessage, `Error: ${result.error}`, 'error');
             }
-            
-            // Clear form
-            signupForm.reset();
-            
-            // Switch to login tab after 3 seconds (or 1 second for invitation signups)
-            setTimeout(() => {
-                tabButtons[0].click();
-            }, invitationToken ? 1000 : 3000);
-        } else {
-            showMessage(signupMessage, `Error: ${result.error}`, 'error');
+        } catch (error) {
+            console.error('Signup exception:', error);
+            showMessage(signupMessage, `Error: ${error.message || 'An unexpected error occurred'}`, 'error');
         }
     });
 

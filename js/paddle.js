@@ -137,9 +137,9 @@ class MepSketcherLicensing {
      * Purchase yearly license using Paddle v2
      */
     async purchaseYearlyLicense(quantity = 1) {
-        // TEMPORARILY DISABLED: Show message instead of opening Paddle checkout
-        alert('We are working on getting the license system up and running soon. Please go ahead and use the trial version for now');
-        return;
+        // // TEMPORARILY DISABLED: Show message instead of opening Paddle checkout
+        // alert('We are working on getting the license system up and running soon. Please go ahead and use the trial version for now');
+        // return;
 
         if (!this.isInitialized) {
             console.error('Paddle not initialized');
@@ -304,9 +304,9 @@ class MepSketcherLicensing {
      * @param {string} subscriptionId - The Paddle subscription ID
      */
     async addLicensesToSubscription(quantity, organizationId, subscriptionId) {
-                // TEMPORARILY DISABLED: Show message instead of opening Paddle checkout
-        alert('We are working on getting the license system up and running soon. Please go ahead and use the trial version for now');
-        return;
+        //         TEMPORARILY DISABLED: Show message instead of opening Paddle checkout
+        // alert('We are working on getting the license system up and running soon. Please go ahead and use the trial version for now');
+        // return;
         console.log(`Adding ${quantity} licenses to subscription ${subscriptionId} for org ${organizationId}`);
         
         try {

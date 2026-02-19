@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
     const userName = authData.user.user_metadata?.name || email.split("@")[0];
 
     console.log(
-      `User authenticated: ${userId}, Email confirmed: ${emailConfirmed}`
+      `User authenticated: ${userId}, Email confirmed: ${emailConfirmed}`,
     );
 
     let pendingOrganizationsProcessed = false;
@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
             },
             {
               onConflict: "id",
-            }
+            },
           );
 
         if (profileError) {
@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
           for (const pendingOrg of pendingOrgs) {
             try {
               console.log(
-                `Processing pending org: ${pendingOrg.organization_name}`
+                `Processing pending org: ${pendingOrg.organization_name}`,
               );
 
               // Check if organization already exists
@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
                 if (memberError) {
                   console.error(
                     "Failed to add user to organization:",
-                    memberError
+                    memberError,
                   );
                   continue;
                 }
@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
                     owner_id: userId,
                     is_trial: true,
                     trial_expires_at: new Date(
-                      Date.now() + 14 * 24 * 60 * 60 * 1000
+                      Date.now() + 14 * 24 * 60 * 60 * 1000,
                     ).toISOString(),
                     is_personal_trial_org: true, // Mark for cleanup if user joins another org
                   })
@@ -233,27 +233,28 @@ Deno.serve(async (req) => {
 
                 organizationId = newOrg.id;
                 console.log(
-                  `Created new personal trial organization: ${organizationId}`
+                  `Created new personal trial organization: ${organizationId}`,
                 );
 
-                // Add user as owner
+                // Add user as admin (owner_id in organizations table tracks ownership)
+                // Valid roles are 'admin' and 'member' only
                 const { error: memberError } = await supabaseAdmin
                   .from("organization_members")
                   .insert({
                     organization_id: organizationId,
                     user_id: userId,
-                    role: "owner",
+                    role: "admin",
                     status: "active",
                     has_license: true, // Assign license to organization owner
                     accepted_at: new Date().toISOString(),
                   });
 
                 if (memberError) {
-                  console.error("Failed to add user as owner:", memberError);
+                  console.error("Failed to add user as admin:", memberError);
                   continue;
                 }
 
-                console.log("User added as organization owner");
+                console.log("User added as organization admin");
               }
 
               // Delete the pending organization record
@@ -265,7 +266,7 @@ Deno.serve(async (req) => {
               if (deleteError) {
                 console.error(
                   "Failed to delete pending organization:",
-                  deleteError
+                  deleteError,
                 );
               } else {
                 console.log(`Deleted pending organization: ${pendingOrg.id}`);
@@ -274,7 +275,7 @@ Deno.serve(async (req) => {
             } catch (orgError) {
               console.error(
                 `Error processing pending org ${pendingOrg.organization_name}:`,
-                orgError
+                orgError,
               );
               // Continue with other pending orgs
             }
@@ -285,7 +286,7 @@ Deno.serve(async (req) => {
       } catch (processingError) {
         console.error(
           "Error during pending organization processing:",
-          processingError
+          processingError,
         );
         // Don't fail the signin, just log the error
       }
@@ -297,7 +298,7 @@ Deno.serve(async (req) => {
       const { data: orgMember } = await supabaseAdmin
         .from("organization_members")
         .select(
-          "organization_id, organizations(id, name, is_trial, trial_expires_at)"
+          "organization_id, organizations(id, name, is_trial, trial_expires_at)",
         )
         .eq("user_id", userId)
         .single();
@@ -316,7 +317,7 @@ Deno.serve(async (req) => {
             org.is_trial && org.trial_expires_at
               ? Math.ceil(
                   (new Date(org.trial_expires_at).getTime() - Date.now()) /
-                    (1000 * 60 * 60 * 24)
+                    (1000 * 60 * 60 * 24),
                 )
               : null,
         };
@@ -340,7 +341,7 @@ Deno.serve(async (req) => {
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (error) {
     console.error("Signin error:", error);
@@ -355,7 +356,7 @@ Deno.serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });

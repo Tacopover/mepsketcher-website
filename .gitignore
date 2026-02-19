@@ -216,3 +216,5 @@ docs/implementation-plans/
 
 # Database migration files
 supabase/migrations/*.sql
+COMPLETE_SETUP_GUIDE.md
+EDGE_FUNCTIONS_SECRETS_REFERENCE.md

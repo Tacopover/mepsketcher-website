@@ -203,6 +203,80 @@
     </div>
 
     <!-- Purchase Additional Licenses Modal -->
+    <!-- License Management Modal (replaces Purchase Licenses Modal) -->
+    <div id="licenseManagementModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Manage Licenses</h2>
+                <span class="close">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <form id="licenseManagementForm">
+                    <!-- Current License Status -->
+                    <div class="current-license-status" style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                        <h3 style="margin: 0 0 10px; font-size: 16px;">Current Status</h3>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span>Total licenses:</span>
+                            <strong id="currentTotalLicenses">-</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span>Used licenses:</span>
+                            <strong id="currentUsedLicenses">-</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span>Available licenses:</span>
+                            <strong id="currentAvailableLicenses">-</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Expiration date:</span>
+                            <strong id="currentExpirationDate">-</strong>
+                        </div>
+                    </div>
+
+                    <!-- Quantity Adjuster -->
+                    <div class="form-group">
+                        <label for="newLicenseQuantity">New License Count</label>
+                        <div class="quantity-adjuster" style="display: flex; align-items: center; gap: 10px;">
+                            <button type="button" class="btn btn-secondary btn-small" id="decrementLicenses">−</button>
+                            <input 
+                                type="number" 
+                                id="newLicenseQuantity" 
+                                min="0" 
+                                max="200" 
+                                value="1" 
+                                style="width: 80px; text-align: center;"
+                                required>
+                            <button type="button" class="btn btn-secondary btn-small" id="incrementLicenses">+</button>
+                        </div>
+                        <small class="form-text">
+                            Adjust the total number of licenses for your organization (0-200).
+                        </small>
+                    </div>
+
+                    <!-- Dynamic Preview Section -->
+                    <div id="changePreview" class="change-preview" style="background: #e7f3ff; padding: 15px; border-radius: 4px; margin: 20px 0; border-left: 3px solid #007bff;">
+                        <!-- Preview content will be dynamically populated -->
+                    </div>
+
+                    <!-- Warning Section (shown conditionally) -->
+                    <div id="reductionWarning" class="warning-box" style="display: none; background: #fff3cd; padding: 12px; border-radius: 4px; margin: 15px 0; border-left: 3px solid #e67e22;">
+                        <strong style="color: #856404;">⚠ Warning:</strong>
+                        <p id="warningMessage" style="margin: 5px 0 0; color: #856404; font-size: 14px;"></p>
+                    </div>
+                    
+                    <div id="licenseManagementMessage" class="message" style="display: none;"></div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelLicenseManagement">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="submitLicenseManagement" disabled>Confirm Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legacy Purchase Licenses Modal (kept for backwards compatibility during transition) -->
     <div id="purchaseLicensesModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
@@ -308,6 +382,12 @@
     <!-- Include our scripts - IMPORTANT: Load local config first -->
     <script src="js/supabase-config.local.js"></script>
     <script src="js/supabase-config.js"></script>
+    <!-- Paddle environment selector MUST be loaded first -->
+    <script src="js/paddle-environment.js"></script>
+    <!-- Paddle config files loaded automatically based on environment -->
+    <script src="js/paddle-config.sandbox.js"></script>
+    <script src="js/paddle-config.production.js"></script>
+    <!-- Main config wrapper that selects appropriate config -->
     <script src="js/paddle-config.js"></script>
     <script src="js/paddle.js"></script>
     <script src="js/auth.js"></script>

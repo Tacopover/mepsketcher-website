@@ -596,6 +596,46 @@
     margin-top: var(--spacing-xs);
 }
 
+.scheduled-change-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: var(--spacing-sm);
+}
+
+.scheduled-change-badge.scheduled-increase {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.scheduled-change-badge.scheduled-decrease {
+    background-color: #e67e22;
+    color: white;
+}
+
+.scheduled-change-info {
+    padding: var(--spacing-md);
+    background-color: #fff3cd;
+    border-left: 4px solid #e67e22;
+    border-radius: 4px;
+    margin-bottom: var(--spacing-md);
+}
+
+.scheduled-change-text {
+    margin: 0;
+    color: #856404;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.manage-licenses-section {
+    display: flex;
+    justify-content: center;
+    padding: var(--spacing-md);
+}
+
 .license-status-badge {
     padding: 0.5rem 1rem;
     border-radius: 20px;
@@ -712,6 +752,64 @@
     color: var(--primary-color);
     margin-bottom: var(--spacing-md);
     text-align: center;
+}
+
+/* License Management Modal Styles */
+.warning-box {
+    background-color: #fff3cd;
+    border-left: 4px solid #e67e22;
+    border-radius: 4px;
+    padding: 12px;
+    margin: 15px 0;
+}
+
+.warning-box strong {
+    color: #856404;
+}
+
+.warning-box p {
+    margin: 5px 0 0;
+    color: #856404;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.change-preview {
+    border-radius: 4px;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+.change-preview h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+}
+
+.current-license-status {
+    background-color: var(--background-light);
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.current-license-status h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.quantity-adjuster {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quantity-adjuster .btn-small {
+    min-width: 36px;
+    height: 36px;
+    padding: 0;
+    font-size: 18px;
+    font-weight: bold;
 }
 
 /* Button Styles */

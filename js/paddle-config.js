@@ -1,58 +1,43 @@
 /**
  * Paddle v2 Configuration for MepSketcher
  * 
- * SETUP INSTRUCTIONS:
- * 1. Create a client-side token in Paddle > Developer tools > Authentication
- * 2. Replace 'test_YOUR_CLIENT_SIDE_TOKEN' with your actual token (test_ for sandbox, live_ for production)
- * 3. Create products and prices in your Paddle dashboard
- * 4. Replace 'pri_YOUR_YEARLY_PRICE_ID' with your actual price ID from Paddle
- * 5. Update the sales email address
- * 6. Set environment to 'production' when going live
+ * ARCHITECTURE:
+ * - paddle-environment.js : Controls which environment (sandbox or production)
+ * - paddle-config.sandbox.js : Sandbox/test configuration  
+ * - paddle-config.production.js : Production configuration
+ * - paddle-config.js (this file) : Wrapper that loads the appropriate config
  * 
- * NOTE: Paddle v2 uses Price IDs (pri_) instead of Product IDs
+ * TO SWITCH ENVIRONMENTS:
+ * Edit js/paddle-environment.js and change PADDLE_ENVIRONMENT to 'sandbox' or 'production'
  */
 
-const PaddleConfig = {
-    // Environment: 'sandbox' for testing, 'production' for live
-    environment: 'sandbox',
-    
-    // Your Paddle Client-Side Token
-    clientToken: 'test_1f770571fc299f02717fb5cf005', 
-    
-    // Price IDs for different license types (REPLACE THESE)
-    // In Paddle v2, you use Price IDs (pri_) instead of Product IDs
-    products: {
-        trial: {
-            id: 'pri_YOUR_TRIAL_PRICE_ID', // TODO: Replace with your trial price ID (if applicable)
-            name: 'MepSketcher Trial License',
-            price: 0, // Free trial
-            duration: '30 days',
-            description: 'Full access for 30 days'
-        },
-        yearly: {
-            id: 'pri_01k6z9d511d44y0qg95nbn65qw', // TODO: Replace with your yearly license price ID
-            name: 'MepSketcher Yearly License',
-            price: 299, // Set your actual price
-            duration: '1 year',
-            description: 'Full access for 1 year'
-        }
-    },
-    
-    // Webhook endpoint (for backend processing)
-    webhookUrl: '/paddle/webhook', // TODO: Update with your actual webhook URL
-    
-    // Success/failure redirect URLs
-    redirectUrls: {
-        success: '/purchase-success.html',
-        cancel: '/purchase-cancelled.html'
-    },
-    
-    // Custom quote contact info
-    customQuote: {
-        email: 'sales@mepsketcher.com', // TODO: Replace with your sales email
-        minLicenses: 100
+// Load the appropriate config based on environment selection
+let PaddleConfig;
+
+if (typeof PADDLE_ENVIRONMENT === 'undefined') {
+    console.error('ERROR: paddle-environment.js not loaded. Make sure it\'s included before paddle-config.js');
+    // Default to production if environment not defined
+    PaddleConfig = typeof PaddleConfigProduction !== 'undefined' ? PaddleConfigProduction : {};
+} else if (PADDLE_ENVIRONMENT === 'sandbox') {
+    if (typeof PaddleConfigSandbox === 'undefined') {
+        console.error('ERROR: paddle-config.sandbox.js not loaded');
+        PaddleConfig = {};
+    } else {
+        PaddleConfig = PaddleConfigSandbox;
+        console.log('ℹ️ Paddle configured for SANDBOX environment');
     }
-};
+} else if (PADDLE_ENVIRONMENT === 'production') {
+    if (typeof PaddleConfigProduction === 'undefined') {
+        console.error('ERROR: paddle-config.production.js not loaded');
+        PaddleConfig = {};
+    } else {
+        PaddleConfig = PaddleConfigProduction;
+        console.log('✓ Paddle configured for PRODUCTION environment');
+    }
+} else {
+    console.error(`ERROR: Unknown environment "${PADDLE_ENVIRONMENT}". Use 'sandbox' or 'production'`);
+    PaddleConfig = {};
+}
 
 // Initialize Paddle v2 with configuration
 function initializePaddle(eventCallback = null) {

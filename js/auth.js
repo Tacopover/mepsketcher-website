@@ -121,7 +121,10 @@ class AuthService {
             
             if (!response.ok || !data.success) {
               console.error('Signup failed:', data.error);
-              throw new Error(data.error || 'Signup failed');
+              return {
+                success: false,
+                error: data.error || 'Signup failed'
+              };
             }
 
             console.log('Signup successful:', data.user.id);
@@ -136,7 +139,10 @@ class AuthService {
             };
         } catch (error) {
             console.error('Signup error:', error);
-            throw error;
+            return {
+              success: false,
+              error: error.message || 'An unexpected error occurred during signup'
+            };
         }
     }
 
