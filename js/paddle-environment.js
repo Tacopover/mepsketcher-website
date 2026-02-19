@@ -16,4 +16,4 @@
  * ALTERNATIVE: Add this file to .gitignore to have different values across branches
  */
 
-const PADDLE_ENVIRONMENT = 'sandbox'; // Change to 'sandbox' for testing
+const PADDLE_ENVIRONMENT = 'production'; // Change to 'sandbox' for testing
