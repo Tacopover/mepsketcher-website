@@ -54,16 +54,66 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const body: ScheduleLicenseChangeRequest = await req.json();
+    let body: ScheduleLicenseChangeRequest;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error("Failed to parse request body:", parseError);
+      return new Response(
+        JSON.stringify({
+          error: "Invalid JSON in request body",
+          details:
+            parseError instanceof Error ? parseError.message : "Unknown error",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
     const { organizationId, newQuantity, effectiveDate, cancelAtRenewal } =
       body;
 
+    console.log("Request body received:", {
+      organizationId,
+      newQuantity,
+      effectiveDate,
+      cancelAtRenewal,
+    });
+
     // Validate inputs
-    if (!organizationId || newQuantity === undefined || !effectiveDate) {
+    if (!organizationId) {
+      console.error("Missing organizationId");
       return new Response(
         JSON.stringify({
-          error:
-            "Missing required fields: organizationId, newQuantity, effectiveDate",
+          error: "Missing required field: organizationId",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (newQuantity === undefined) {
+      console.error("Missing newQuantity");
+      return new Response(
+        JSON.stringify({
+          error: "Missing required field: newQuantity",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (!effectiveDate) {
+      console.error("Missing effectiveDate");
+      return new Response(
+        JSON.stringify({
+          error: "Missing required field: effectiveDate",
         }),
         {
           status: 400,
@@ -73,8 +123,12 @@ Deno.serve(async (req) => {
     }
 
     if (newQuantity < 0 || newQuantity > 200) {
+      console.error(`Invalid quantity: ${newQuantity}`);
       return new Response(
-        JSON.stringify({ error: "New quantity must be between 0 and 200" }),
+        JSON.stringify({
+          error: "New quantity must be between 0 and 200",
+          received: newQuantity,
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -122,6 +176,7 @@ Deno.serve(async (req) => {
 
     // Verify that we have an active subscription
     if (!license.subscription_id) {
+      console.error("No subscription_id found on license:", license.id);
       return new Response(
         JSON.stringify({
           error: "No active subscription found for this license",
@@ -134,7 +189,13 @@ Deno.serve(async (req) => {
     }
 
     // Check if new quantity equals current total (no change)
+    console.log(
+      `License total_licenses: ${license.total_licenses}, requested newQuantity: ${newQuantity}, cancelAtRenewal: ${cancelAtRenewal}`,
+    );
     if (newQuantity === license.total_licenses && !cancelAtRenewal) {
+      console.error(
+        `No change: newQuantity (${newQuantity}) equals current total_licenses (${license.total_licenses})`,
+      );
       return new Response(
         JSON.stringify({
           error: "New quantity is the same as current total. No change needed.",

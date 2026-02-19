@@ -18,13 +18,13 @@ const PaddleConfigSandbox = {
             id: 'pri_YOUR_SANDBOX_TRIAL_PRICE_ID',
             name: 'MepSketcher Trial License (Sandbox)',
             price: 0,
-            duration: '30 days',
-            description: 'Full access for 30 days'
+            duration: '14 days',
+            description: 'Full access for 14 days'
         },
         yearly: {
             id: 'pri_01k6z9d511d44y0qg95nbn65qw',
             name: 'MepSketcher Yearly License (Sandbox)',
-            price: 299,
+            price: 200,
             duration: '1 year',
             description: 'Full access for 1 year'
         }
@@ -42,6 +42,6 @@ const PaddleConfigSandbox = {
     // Custom quote contact info
     customQuote: {
         email: 'sales@mepsketcher.com',
-        minLicenses: 100
+        minLicenses: 50
     }
 };

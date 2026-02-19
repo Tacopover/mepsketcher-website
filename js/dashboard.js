@@ -1215,7 +1215,7 @@ async function handleLicenseManagementSubmit(event) {
             const { data, error } = await authService.supabase.functions.invoke('schedule-license-change', {
                 body: {
                     organizationId: currentManagedLicense.organization_id,
-                    newQuantity: newQuantity,
+                    newQuantity: parseInt(quantityInput.value), 
                     effectiveDate: currentManagedLicense.expires_at
                 }
             });
