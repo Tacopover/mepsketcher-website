@@ -6,26 +6,78 @@
     <title>Documentation - MepSketcher</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .coming-soon-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 80vh;
-            text-align: center;
-            padding: 20px;
+        .docs-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
         }
-        .coming-soon-container h1 {
-            font-size: 3rem;
-            margin-bottom: 20px;
+        .docs-container h1 {
+            font-size: 2.5rem;
             color: #333;
+            margin-bottom: 20px;
+            text-align: center;
         }
-        .coming-soon-container p {
-            font-size: 1.2rem;
+        .docs-intro {
+            font-size: 1.1rem;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        .doc-section {
+            margin-bottom: 50px;
+        }
+        .doc-section h2 {
+            font-size: 1.8rem;
+            color: #0066cc;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 10px;
+        }
+        .doc-section p {
+            font-size: 1rem;
             color: #666;
-            margin-bottom: 30px;
+            line-height: 1.6;
+            margin-bottom: 20px;
         }
-        .coming-soon-container a {
+        .doc-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+        }
+        .video-section {
+            background-color: #f5f5f5;
+            padding: 30px;
+            border-radius: 5px;
+            margin-top: 50px;
+            text-align: center;
+        }
+        .video-section h2 {
+            color: #0066cc;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 10px;
+        }
+        .video-section p {
+            margin-bottom: 20px;
+            color: #666;
+        }
+        .video-link {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #ff0000;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+            font-weight: bold;
+        }
+        .video-link:hover {
+            background-color: #cc0000;
+        }
+        .back-link {
             display: inline-block;
             padding: 12px 30px;
             background-color: #0066cc;
@@ -33,17 +85,50 @@
             text-decoration: none;
             border-radius: 5px;
             transition: background-color 0.3s;
+            margin-top: 30px;
         }
-        .coming-soon-container a:hover {
+        .back-link:hover {
             background-color: #0052a3;
         }
     </style>
 </head>
 <body>
-    <div class="coming-soon-container">
-        <h1>Coming Soon</h1>
-        <p>Our documentation is being prepared and will be available shortly.</p>
-        <a href="/">Back to Home</a>
+    <div class="docs-container">
+        <h1>MepSketcher Documentation</h1>
+        
+        <div class="docs-intro">
+            <p>Welcome to MepSketcher! This guide will help you get started with creating MEP (Mechanical, Electrical, and Plumbing) system designs on PDF drawings. Follow along with the visual guides below to learn how to use the application effectively.</p>
+        </div>
+
+        <!-- Getting Started Overview -->
+        <div class="doc-section">
+            <h2>Getting Started Overview</h2>
+            <p>MepSketcher allows you to design MEP systems directly on your PDF drawings. Below is an overview of the key sections of the application interface. Take time to familiarize yourself with the layout and the important tools available to you.</p>
+            <img src="images/Getting started overview.png" alt="Getting Started Overview" class="doc-image">
+        </div>
+
+        <!-- Terminals and Equipment -->
+        <div class="doc-section">
+            <h2>Placing Terminals and Equipment</h2>
+            <p>Terminals and equipment are the foundation of your MEP system. Terminals represent supply and return points, while equipment includes fans, pumps, and other major MEP components. In the image below the essentials for placing these elements are highlighted.</p>
+            <img src="images/HowTo_Terminal Equipment.png" alt="How to Place Terminals and Equipment" class="doc-image">
+        </div>
+
+        <!-- Segments -->
+        <div class="doc-section">
+            <h2>Placing Segments</h2>
+            <p>Segments are the connections between terminals and equipment, representing ducts, pipes, and cable trays in your MEP system. Learn how to create and connect segments to complete your system design and enable proper flow calculations.</p>
+            <img src="images/HowTo_Segment.png" alt="How to Place Segments" class="doc-image">
+        </div>
+
+        <!-- Video Tutorial -->
+        <div class="video-section">
+            <h2>Video Tutorial</h2>
+            <p>For a comprehensive walkthrough of MepSketcher functionality, check out our video tutorial below:</p>
+            <a href="https://youtu.be/RNxDewEy69o" target="_blank" class="video-link">Watch Tutorial on YouTube</a>
+        </div>
+
+        <a href="/" class="back-link">Back to Home</a>
     </div>
 
     <!-- Footer -->
