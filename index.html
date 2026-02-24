@@ -147,7 +147,7 @@
                         </ul>
                     </div>
                     <div class="pricing-footer">
-                        <button class="btn btn-secondary btn-full" onclick="startTrial()">Start Free Trial</button>
+                        <button class="btn btn-secondary btn-full" id="btn-start-trial">Start Free Trial</button>
                     </div>
                 </div>
 
@@ -170,7 +170,7 @@
                         </ul>
                     </div>
                     <div class="pricing-footer">
-                        <button class="btn btn-primary btn-full" onclick="purchaseYearlyLicense()">Buy Yearly License</button>
+                        <button class="btn btn-primary btn-full" id="btn-purchase-yearly">Buy Yearly License</button>
                     </div>
                 </div>
 
@@ -192,7 +192,7 @@
                         </ul>
                     </div>
                     <div class="pricing-footer">
-                        <button class="btn btn-secondary btn-full" onclick="requestCustomQuote()">Request Quote</button>
+                        <button class="btn btn-secondary btn-full" id="btn-request-quote">Request Quote</button>
                     </div>
                 </div>
             </div>
@@ -288,7 +288,7 @@
             <div class="download-content">
                 <p class="download-text">Get started with MEPSketcher today. Free trial available.</p>
                 <div class="download-buttons">
-                    <button class="btn btn-primary btn-large" onclick="startTrial()">Download for Windows</button>
+                    <button class="btn btn-primary btn-large" id="btn-download">Download for Windows</button>
                 </div>
                 <p class="download-version">Version 1.0 | Windows 10+ | 200 MB</p>
             </div>
@@ -349,16 +349,16 @@
     </div>
 
     <!-- Supabase -->
-    <!-- NOTE: SRI hash below was generated and should be updated after verifying with https://www.srihash.org/ -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" integrity="sha384-EEf2/HlWlUFYZTFnfL4Jb4BoXTLKaAWYHy0qGRfnDkfhR1XzfY9Z6jKVnLpfEYL" crossorigin="anonymous"></script>
+    <!-- SRI hash verified from browser integrity check -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" integrity="sha384-aRAaCbKYByQpx0fjPuC0PQ9P9moWMEsHXP9tyzP7tbyD5fPK6oTp+THsxdWiq02L" crossorigin="anonymous"></script>
     
     <!-- Authentication -->
     <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
     
     <!-- Paddle SDK v2 -->
-    <!-- NOTE: SRI hash below was generated and should be updated after verifying with https://www.srihash.org/ -->
-    <script src="https://cdn.paddle.com/paddle/v2/paddle.js" integrity="sha384-jvZFiCbYPmYSKV5p7c+vMqLnxNtJXpJCDvC1FBj7/B7MG8jNT2eJ8mXk2VL4W1qV" crossorigin="anonymous"></script>
+    <!-- SRI hash verified from browser integrity check -->
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js" integrity="sha384-lWxpRGJ8aZBBUYaoI2Qj0giL95zW3KRme6Z2tpFOyaFj7s5e+ZSFvUbKI5spGCID" crossorigin="anonymous"></script>
     
     <!-- MepSketcher Scripts -->
     <!-- Environment selector MUST be loaded first -->

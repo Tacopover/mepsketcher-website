@@ -166,3 +166,16 @@ document.addEventListener('authReady', function(event) {
     console.log('authReady event received!', event.detail);
     updateNavigationForAuth();
 });
+
+// Wire up pricing/download buttons (replaces inline onclick handlers removed for CSP compliance)
+document.addEventListener('DOMContentLoaded', function() {
+    const btnStartTrial = document.getElementById('btn-start-trial');
+    const btnPurchaseYearly = document.getElementById('btn-purchase-yearly');
+    const btnRequestQuote = document.getElementById('btn-request-quote');
+    const btnDownload = document.getElementById('btn-download');
+
+    if (btnStartTrial) btnStartTrial.addEventListener('click', function() { startTrial(); });
+    if (btnPurchaseYearly) btnPurchaseYearly.addEventListener('click', function() { purchaseYearlyLicense(); });
+    if (btnRequestQuote) btnRequestQuote.addEventListener('click', function() { requestCustomQuote(); });
+    if (btnDownload) btnDownload.addEventListener('click', function() { startTrial(); });
+});
