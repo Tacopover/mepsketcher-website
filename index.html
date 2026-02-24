@@ -14,7 +14,7 @@
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         script-src 'self' https://cdn.paddle.com https://cdn.jsdelivr.net;
-        style-src 'self' https://cdn.paddle.com;
+        style-src 'self' https://cdn.paddle.com https://sandbox-cdn.paddle.com;
         connect-src 'self' https://*.paddle.com https://checkout-service.paddle.com https://*.supabase.co;
         img-src 'self' data: https:;
         font-src 'self';
@@ -349,8 +349,10 @@
     </div>
 
     <!-- Supabase -->
-    <!-- SRI hash verified from browser integrity check -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" integrity="sha384-aRAaCbKYByQpx0fjPuC0PQ9P9moWMEsHXP9tyzP7tbyD5fPK6oTp+THsxdWiq02L" crossorigin="anonymous"></script>
+    <!-- SRI hash verified from browser integrity check.
+         IMPORTANT: This uses a floating @2 tag - update hash when supabase-js releases a new major/minor version.
+         To pin a specific version use: @supabase/supabase-js@2.x.x -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" integrity="sha384-1+ItoWbWcmVSm+Y+dJaUt4SEWNA21/jxef+Z0TSHHVy/dEUxEUEnZ1bHn6GT5hj+" crossorigin="anonymous"></script>
     
     <!-- Authentication -->
     <script src="js/supabase-config.js"></script>
