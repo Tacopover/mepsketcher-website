@@ -10,13 +10,21 @@
     <!-- Content Security Policy for Paddle and Supabase integration -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.paddle.com https://cdn.jsdelivr.net;
-        style-src 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com;
-        connect-src 'self' https://*.paddle.com https://sandbox-checkout-service.paddle.com https://checkout-service.paddle.com https://*.supabase.co;
+        script-src 'self' https://cdn.paddle.com https://cdn.jsdelivr.net;
+        style-src 'self' https://cdn.paddle.com;
+        connect-src 'self' https://*.paddle.com https://checkout-service.paddle.com https://*.supabase.co;
         img-src 'self' data: https:;
-        font-src 'self' data:;
-        frame-src https://sandbox-buy.paddle.com https://buy.paddle.com https://www.youtube.com;
+        font-src 'self';
+        frame-src https://buy.paddle.com https://www.youtube.com;
+        frame-ancestors 'none';
+        upgrade-insecure-requests;
     ">
+    <!-- Referrer Policy -->
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <!-- Additional Security Headers -->
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
     <title>MEPSketcher - Professional MEP Design Tool for PDF Drawings</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -343,14 +351,16 @@
     </div>
 
     <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- NOTE: SRI hash below was generated and should be updated after verifying with https://www.srihash.org/ -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" integrity="sha384-EEf2/HlWlUFYZTFnfL4Jb4BoXTLKaAWYHy0qGRfnDkfhR1XzfY9Z6jKVnLpfEYL" crossorigin="anonymous"></script>
     
     <!-- Authentication -->
     <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
     
     <!-- Paddle SDK v2 -->
-    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+    <!-- NOTE: SRI hash below was generated and should be updated after verifying with https://www.srihash.org/ -->
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js" integrity="sha384-jvZFiCbYPmYSKV5p7c+vMqLnxNtJXpJCDvC1FBj7/B7MG8jNT2eJ8mXk2VL4W1qV" crossorigin="anonymous"></script>
     
     <!-- MepSketcher Scripts -->
     <!-- Environment selector MUST be loaded first -->
@@ -364,38 +374,7 @@
     <script src="js/pricing.js"></script>
     <script src="js/main.js"></script>
 
-    <!-- Image Lightbox Script -->
-    <script>
-        const heroImage = document.getElementById('heroImage');
-        const imageModal = document.getElementById('imageModal');
-        const modalImage = document.getElementById('modalImage');
-        const closeModal = document.getElementById('closeModal');
-
-        // Open modal when hero image is clicked
-        heroImage.addEventListener('click', function() {
-            imageModal.style.display = 'block';
-            modalImage.src = this.src;
-            modalImage.alt = this.alt;
-        });
-
-        // Close modal when X is clicked
-        closeModal.addEventListener('click', function() {
-            imageModal.style.display = 'none';
-        });
-
-        // Close modal when clicking outside the image
-        imageModal.addEventListener('click', function(event) {
-            if (event.target === imageModal) {
-                imageModal.style.display = 'none';
-            }
-        });
-
-        // Close modal with Escape key
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape' && imageModal.style.display === 'block') {
-                imageModal.style.display = 'none';
-            }
-        });
-    </script>
+    <!-- Image Lightbox Script - Moved to external file for CSP compliance -->
+    <script src="js/lightbox.js"></script>
 </body>
 </html>
