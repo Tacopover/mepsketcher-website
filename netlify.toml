@@ -1,0 +1,55 @@
+# Netlify configuration for mepsketcher.com
+# Phase 2 security hardening - Mozilla Observatory fixes
+
+[build]
+  publish = "."
+
+# ---------------------------------------------------------------------------
+# Redirects
+# ---------------------------------------------------------------------------
+# Enforce HTTPS on the canonical (non-www) domain.
+# Netlify automatically upgrades HTTP → HTTPS, but adding an explicit rule
+# ensures the redirect targets the *same* host (fixing Observatory Issue 4).
+# www → naked domain redirect (adjust to www → www if that's your canonical)
+[[redirects]]
+  from = "http://mepsketcher.com/*"
+  to   = "https://mepsketcher.com/:splat"
+  status = 301
+  force  = true
+
+[[redirects]]
+  from = "http://www.mepsketcher.com/*"
+  to   = "https://mepsketcher.com/:splat"
+  status = 301
+  force  = true
+
+[[redirects]]
+  from = "https://www.mepsketcher.com/*"
+  to   = "https://mepsketcher.com/:splat"
+  status = 301
+  force  = true
+
+# ---------------------------------------------------------------------------
+# Security Headers (applied to every response)
+# ---------------------------------------------------------------------------
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+    # HSTS - Issue 3 (-20 pts)
+    # Start at 1 month; increase to 1 year (31536000) after confirming no issues.
+    # Remove 'preload' until you have submitted to the HSTS preload list.
+    Strict-Transport-Security = "max-age=2592000; includeSubDomains; preload"
+
+    # Clickjacking protection - Issue 2 (-20 pts)
+    # Complements 'frame-ancestors' in CSP for older browsers.
+    X-Frame-Options = "DENY"
+
+    # MIME sniffing protection - Issue 6 (-5 pts)
+    X-Content-Type-Options = "nosniff"
+
+    # Referrer leakage protection - Issue 7
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+    # Additional hardening (not scored but recommended)
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
