@@ -218,3 +218,5 @@ docs/implementation-plans/
 supabase/migrations/*.sql
 COMPLETE_SETUP_GUIDE.md
 EDGE_FUNCTIONS_SECRETS_REFERENCE.md
+
+.architecture/SECURITY_FIXES_PLAN.md

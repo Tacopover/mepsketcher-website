@@ -108,24 +108,24 @@ class MepSketcherLicensing {
      */
     showTrialSuccess(userEmail) {
         this.showSuccess('Trial Active!', `
-            <div class="trial-success-message" style="text-align: center;">
-                <p style="margin-bottom: 20px; font-size: 16px;">
+            <div class="trial-success-message">
+                <p class="trial-success-lead">
                     Your 14-day free trial is active for <strong>${userEmail}</strong>
                 </p>
-                <p style="margin-bottom: 20px; color: #666;">
+                <p class="trial-success-sub">
                     You can now download and install MepSketcher from your dashboard.
                 </p>
-                <div style="margin: 30px 0;">
-                    <a href="/dashboard.html" class="btn btn-primary" style="text-decoration: none; padding: 12px 32px; background: #007bff; color: white; border-radius: 4px; display: inline-block; font-weight: 600;">
+                <div class="trial-success-cta">
+                    <a href="/dashboard.html" class="btn btn-primary trial-dashboard-btn">
                         Go to Dashboard
                     </a>
                 </div>
-                <div class="trial-info" style="text-align: left; background: #f8f9fa; padding: 20px; border-radius: 4px; margin-top: 20px;">
-                    <h4 style="margin: 0 0 15px; color: #333;">Next Steps:</h4>
-                    <ol style="margin: 0; padding-left: 20px; color: #666;">
-                        <li style="margin-bottom: 8px;">Go to your dashboard</li>
-                        <li style="margin-bottom: 8px;">Download the MepSketcher installer</li>
-                        <li style="margin-bottom: 8px;">Install and launch the application</li>
+                <div class="trial-info">
+                    <h4 class="trial-info-heading">Next Steps:</h4>
+                    <ol class="trial-info-list">
+                        <li>Go to your dashboard</li>
+                        <li>Download the MepSketcher installer</li>
+                        <li>Install and launch the application</li>
                         <li>Sign in with your account to activate your trial</li>
                     </ol>
                 </div>
@@ -463,7 +463,7 @@ class MepSketcherLicensing {
                 <p><strong>Transaction ID:</strong> ${transactionId}</p>
                 <p>You will receive an email with your license key and download instructions shortly.</p>
                 <div class="success-actions">
-                    <a href="#download" class="btn btn-primary" onclick="mepSketcherLicensing.closeModal()">Go to Download</a>
+                    <a href="#download" class="btn btn-primary" data-action="close-modal">Go to Download</a>
                 </div>
             `);
         }
@@ -513,7 +513,7 @@ class MepSketcherLicensing {
                         <textarea id="quote-requirements" name="quote-requirements" rows="4" placeholder="Tell us about your specific needs, timeline, training requirements, etc."></textarea>
                     </div>
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="mepSketcherLicensing.closeModal()">Cancel</button>
+                        <button type="button" class="btn btn-secondary" data-action="close-modal">Cancel</button>
                         <button type="submit" class="btn btn-primary">Request Quote</button>
                     </div>
                 </form>
@@ -629,7 +629,7 @@ class MepSketcherLicensing {
             <div class="paddle-modal">
                 <div class="paddle-modal-header">
                     <h3>${title}</h3>
-                    <button class="paddle-modal-close" onclick="mepSketcherLicensing.closeModal()">&times;</button>
+                    <button class="paddle-modal-close" data-action="close-modal">&times;</button>
                 </div>
                 <div class="paddle-modal-body">
                     ${content}
@@ -640,9 +640,9 @@ class MepSketcherLicensing {
         document.body.appendChild(modal);
         document.body.style.overflow = 'hidden'; // Prevent background scroll
 
-        // Close on background click
+        // Close on background click or any element with data-action="close-modal"
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
+            if (e.target === modal || e.target.closest('[data-action="close-modal"]')) {
                 this.closeModal();
             }
         });
@@ -670,7 +670,7 @@ class MepSketcherLicensing {
                 <div class="success-icon">✅</div>
                 ${content}
                 <div class="form-actions">
-                    <button class="btn btn-primary" onclick="mepSketcherLicensing.closeModal()">Close</button>
+                    <button class="btn btn-primary" data-action="close-modal">Close</button>
                 </div>
             </div>
         `);
@@ -685,7 +685,7 @@ class MepSketcherLicensing {
                 <div class="error-icon">❌</div>
                 <p>${message}</p>
                 <div class="form-actions">
-                    <button class="btn btn-secondary" onclick="mepSketcherLicensing.closeModal()">Close</button>
+                    <button class="btn btn-secondary" data-action="close-modal">Close</button>
                 </div>
             </div>
         `);
@@ -704,15 +704,15 @@ class MepSketcherLicensing {
         const redirectUrl = isTrial ? '/login.html?action=trial' : '/login.html';
         
         this.createModal(title, `
-            <div class="login-required-message" style="text-align: center; padding: 20px;">
-                <p style="margin-bottom: 20px; font-size: 16px;">
+            <div class="login-required-message">
+                <p class="login-required-text">
                     ${message}
                 </p>
-                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                    <a href="${redirectUrl}" class="btn btn-primary" style="text-decoration: none; padding: 12px 24px; background: #007bff; color: white; border-radius: 4px; display: inline-block;">
+                <div class="login-action-buttons">
+                    <a href="${redirectUrl}" class="btn btn-primary login-btn">
                         Sign In
                     </a>
-                    <a href="${redirectUrl}#signup" class="btn btn-secondary" style="text-decoration: none; padding: 12px 24px; background: #6c757d; color: white; border-radius: 4px; display: inline-block;">
+                    <a href="${redirectUrl}#signup" class="btn btn-secondary login-btn">
                         Sign Up
                     </a>
                 </div>

@@ -8,16 +8,24 @@
     <meta name="author" content="MEPSketcher">
     
     <!-- Content Security Policy for Paddle and Supabase integration -->
+    <!-- NOTE: frame-ancestors, X-Frame-Options, X-Content-Type-Options, and HSTS
+         MUST be set via HTTP headers, not meta tags. These are configured in
+         netlify.toml (Phase 2 of security hardening). -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
-        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.paddle.com https://cdn.jsdelivr.net;
-        style-src 'self' 'unsafe-inline' https://cdn.paddle.com https://sandbox-cdn.paddle.com;
-        connect-src 'self' https://*.paddle.com https://sandbox-checkout-service.paddle.com https://checkout-service.paddle.com https://*.supabase.co;
+        script-src 'self' https://cdn.paddle.com https://cdn.jsdelivr.net;
+        style-src 'self' https://cdn.paddle.com https://sandbox-cdn.paddle.com;
+        connect-src 'self' https://*.paddle.com https://checkout-service.paddle.com https://*.supabase.co https://cdn.jsdelivr.net;
         img-src 'self' data: https:;
-        font-src 'self' data:;
-        frame-src https://sandbox-buy.paddle.com https://buy.paddle.com https://www.youtube.com;
+        font-src 'self';
+        frame-src https://buy.paddle.com https://www.youtube.com;
+        upgrade-insecure-requests;
     ">
+    <!-- Referrer Policy -->
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>MEPSketcher - Professional MEP Design Tool for PDF Drawings</title>
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+    <link rel="shortcut icon" href="images/favicon.svg">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -31,7 +39,6 @@
                 <li><a href="#home" class="nav-link">Home</a></li>
                 <li><a href="#features" class="nav-link">Features</a></li>
                 <li><a href="#pricing" class="nav-link">Pricing</a></li>
-                <li><a href="#screenshots" class="nav-link">Screenshots</a></li>
                 <li><a href="#getting-started" class="nav-link">Getting Started</a></li>
                 <li><a href="login.html" class="nav-link">Sign In</a></li>
             </ul>
@@ -54,8 +61,8 @@
                 </div>
             </div>
             <div class="hero-image">
-                <img src="images/MEPSketcher main screen.png" alt="MEPSketcher Application Interface" class="hero-screenshot" id="heroImage" style="cursor: pointer;">
-                <p style="text-align: center; font-size: 12px; color: #666; margin-top: 8px;">Click to enlarge</p>
+                <img src="images/MEPSketcher main screen.png" alt="MEPSketcher Application Interface" class="hero-screenshot" id="heroImage">
+                <p class="hero-image-caption">Click to enlarge</p>
             </div>
         </div>
     </section>
@@ -141,7 +148,7 @@
                         </ul>
                     </div>
                     <div class="pricing-footer">
-                        <button class="btn btn-secondary btn-full" onclick="startTrial()">Start Free Trial</button>
+                        <button class="btn btn-secondary btn-full" id="btn-start-trial">Start Free Trial</button>
                     </div>
                 </div>
 
@@ -164,7 +171,7 @@
                         </ul>
                     </div>
                     <div class="pricing-footer">
-                        <button class="btn btn-primary btn-full" onclick="purchaseYearlyLicense()">Buy Yearly License</button>
+                        <button class="btn btn-primary btn-full" id="btn-purchase-yearly">Buy Yearly License</button>
                     </div>
                 </div>
 
@@ -186,7 +193,7 @@
                         </ul>
                     </div>
                     <div class="pricing-footer">
-                        <button class="btn btn-secondary btn-full" onclick="requestCustomQuote()">Request Quote</button>
+                        <button class="btn btn-secondary btn-full" id="btn-request-quote">Request Quote</button>
                     </div>
                 </div>
             </div>
@@ -263,10 +270,10 @@
                     <div class="step-number">4</div>
                     <div class="step-content">
                         <h3 class="step-title">Learn More With Video</h3>
-                        <p style="margin-bottom: 24px; text-align: left;">Watch our feature overview to see MEPSketcher in action:</p>
-                        <div style="display: flex; justify-content: center; margin: 0 auto; width: 100%; padding: 0 20px; box-sizing: border-box;">
-                            <div class="video-container" style="position: relative; width: 100%; max-width: 1400px; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                                <iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" src="https://www.youtube.com/embed/RNxDewEy69o" title="MEPSketcher Feature Overview" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                        <p class="step-video-intro">Watch our feature overview to see MEPSketcher in action:</p>
+                        <div class="video-wrapper">
+                            <div class="video-container">
+                                <iframe class="video-iframe" src="https://www.youtube.com/embed/RNxDewEy69o" title="MEPSketcher Feature Overview" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
                             </div>
                         </div>
                     </div>
@@ -282,7 +289,7 @@
             <div class="download-content">
                 <p class="download-text">Get started with MEPSketcher today. Free trial available.</p>
                 <div class="download-buttons">
-                    <button class="btn btn-primary btn-large" onclick="startTrial()">Download for Windows</button>
+                    <button class="btn btn-primary btn-large" id="btn-download">Download for Windows</button>
                 </div>
                 <p class="download-version">Version 1.0 | Windows 10+ | 200 MB</p>
             </div>
@@ -337,20 +344,24 @@
     </footer>
 
     <!-- Image Lightbox Modal -->
-    <div id="imageModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9);">
-        <span id="closeModal" style="position: absolute; top: 20px; right: 40px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer;">&times;</span>
-        <img id="modalImage" style="margin: auto; display: block; width: auto; max-width: 90%; max-height: 90%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);" src="" alt="">
+    <div id="imageModal" class="lightbox-modal">
+        <span id="closeModal" class="lightbox-close">&times;</span>
+        <img id="modalImage" class="lightbox-image" src="" alt="">
     </div>
 
     <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- SRI hash verified from browser integrity check.
+         IMPORTANT: This uses a floating @2 tag - update hash when supabase-js releases a new major/minor version.
+         To pin a specific version use: @supabase/supabase-js@2.x.x -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" integrity="sha384-1+ItoWbWcmVSm+Y+dJaUt4SEWNA21/jxef+Z0TSHHVy/dEUxEUEnZ1bHn6GT5hj+" crossorigin="anonymous"></script>
     
     <!-- Authentication -->
     <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
     
     <!-- Paddle SDK v2 -->
-    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+    <!-- SRI hash verified from browser integrity check -->
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js" integrity="sha384-lWxpRGJ8aZBBUYaoI2Qj0giL95zW3KRme6Z2tpFOyaFj7s5e+ZSFvUbKI5spGCID" crossorigin="anonymous"></script>
     
     <!-- MepSketcher Scripts -->
     <!-- Environment selector MUST be loaded first -->
@@ -364,38 +375,7 @@
     <script src="js/pricing.js"></script>
     <script src="js/main.js"></script>
 
-    <!-- Image Lightbox Script -->
-    <script>
-        const heroImage = document.getElementById('heroImage');
-        const imageModal = document.getElementById('imageModal');
-        const modalImage = document.getElementById('modalImage');
-        const closeModal = document.getElementById('closeModal');
-
-        // Open modal when hero image is clicked
-        heroImage.addEventListener('click', function() {
-            imageModal.style.display = 'block';
-            modalImage.src = this.src;
-            modalImage.alt = this.alt;
-        });
-
-        // Close modal when X is clicked
-        closeModal.addEventListener('click', function() {
-            imageModal.style.display = 'none';
-        });
-
-        // Close modal when clicking outside the image
-        imageModal.addEventListener('click', function(event) {
-            if (event.target === imageModal) {
-                imageModal.style.display = 'none';
-            }
-        });
-
-        // Close modal with Escape key
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape' && imageModal.style.display === 'block') {
-                imageModal.style.display = 'none';
-            }
-        });
-    </script>
+    <!-- Image Lightbox Script - Moved to external file for CSP compliance -->
+    <script src="js/lightbox.js"></script>
 </body>
 </html>
