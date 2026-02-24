@@ -11,6 +11,7 @@ This plan addresses 7 security issues identified by Mozilla Observatory scan, to
 ## Phase 1 Status: COMPLETE ✅
 
 **Completed** (Commit: 140fddf):
+
 - ✅ Removed `'unsafe-inline'` and `'unsafe-eval'` from CSP script-src
 - ✅ Removed `'unsafe-inline'` from CSP style-src
 - ✅ Created `js/lightbox.js` - Extracted inline lightbox scripts to external file
@@ -25,6 +26,7 @@ This plan addresses 7 security issues identified by Mozilla Observatory scan, to
 ## Issues and Fixes
 
 ### Issue 1: Content Security Policy (CSP) - CRITICAL (-20 points)
+
 **Status**: ✅ COMPLETE
 
 **Problem**:
@@ -57,6 +59,7 @@ This plan addresses 7 security issues identified by Mozilla Observatory scan, to
 ---
 
 ### Issue 2: X-Frame-Options (XFO) - CRITICAL (-20 points)
+
 **Status**: ✅ COMPLETE
 
 **Problem**:
@@ -83,6 +86,7 @@ This plan addresses 7 security issues identified by Mozilla Observatory scan, to
 ---
 
 ### Issue 3: Strict-Transport-Security (HSTS) - CRITICAL (-20 points)
+
 **Status**: 🔄 In Progress (Phase 2)
 
 **Problem**:
@@ -118,6 +122,7 @@ Strict-Transport-Security: max-age=2592000; includeSubDomains; preload
 ---
 
 ### Issue 4: Redirection (HTTP to HTTPS) - MEDIUM (-5 points)
+
 **Status**: 🔄 In Progress (Phase 2)
 
 **Problem**:
@@ -146,6 +151,7 @@ Strict-Transport-Security: max-age=2592000; includeSubDomains; preload
 ---
 
 ### Issue 5: Subresource Integrity (SRI) - MEDIUM (-5 points)
+
 **Status**: ✅ COMPLETE
 
 **Problem**:
@@ -183,6 +189,7 @@ Strict-Transport-Security: max-age=2592000; includeSubDomains; preload
 
 **⚠️ IMPORTANT - SRI Hash Verification Required**:
 The SRI hashes have been added to `index.html` with comments noting they should be verified at https://www.srihash.org/:
+
 - `sha384-EEf2/HlWlUFYZTFnfL4Jb4BoXTLKaAWYHy0qGRfnDkfhR1XzfY9Z6jKVnLpfEYL` (Supabase)
 - `sha384-jvZFiCbYPmYSKV5p7c+vMqLnxNtJXpJCDvC1FBj7/B7MG8jNT2eJ8mXk2VL4W1qV` (Paddle)
 
@@ -193,6 +200,7 @@ These hashes are from a previous scan and should be verified against the current
 ---
 
 ### Issue 6: X-Content-Type-Options - MEDIUM (-5 points)
+
 **Status**: ✅ COMPLETE
 
 **Problem**:
@@ -218,6 +226,7 @@ These hashes are from a previous scan and should be verified against the current
 ---
 
 ### Issue 7: Referrer-Policy - LOW (0 points, but required for completeness)
+
 **Status**: ✅ COMPLETE
 
 **Problem**:
