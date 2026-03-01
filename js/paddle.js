@@ -79,8 +79,41 @@ class MepSketcherLicensing {
     async startTrial() {
         // Check if user is authenticated
         if (typeof window.supabase === 'undefined') {
-            console.error('Supabase not initialized');
-            this.showError('Authentication system unavailable. Please try again later.');
+            // Comprehensive diagnostic logging
+            const diagnostics = {
+                timestamp: new Date().toISOString(),
+                windowSupabaseDefined: typeof window.supabase !== 'undefined',
+                windowSupabaseValue: typeof window.supabase,
+                windowPaddleDefined: typeof window.Paddle !== 'undefined',
+                windowPaddleConfigDefined: typeof window.PaddleConfig !== 'undefined',
+                documentReadyState: document.readyState,
+                supabaseRelatedProps: Object.keys(window).filter(k => k.toLowerCase().includes('supa')),
+                authRelatedProps: Object.keys(window).filter(k => k.toLowerCase().includes('auth')),
+                paddleRelatedProps: Object.keys(window).filter(k => k.toLowerCase().includes('paddle'))
+            };
+            
+            console.error('Supabase not initialized in startTrial:', diagnostics);
+            console.log('Full window diagnostic:', diagnostics);
+            
+            // Display diagnostics in error message
+            const diagnosticsHtml = `
+                <p>Unable to load authentication system. This information will help us diagnose the issue:</p>
+                <div style="background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 4px; font-size: 12px; text-align: left; font-family: monospace; overflow-x: auto;">
+                    <strong>Diagnostics:</strong><br>
+                    Timestamp: ${diagnostics.timestamp}<br>
+                    Document Ready: ${diagnostics.documentReadyState}<br>
+                    Supabase Defined: ${diagnostics.windowSupabaseDefined}<br>
+                    Paddle Defined: ${diagnostics.windowPaddleDefined}<br>
+                    PaddleConfig Defined: ${diagnostics.windowPaddleConfigDefined}<br>
+                    <strong>Available window properties:</strong><br>
+                    Supabase-related: ${diagnostics.supabaseRelatedProps.join(', ') || 'None'}<br>
+                    Auth-related: ${diagnostics.authRelatedProps.join(', ') || 'None'}<br>
+                    Paddle-related: ${diagnostics.paddleRelatedProps.join(', ') || 'None'}
+                </div>
+                <p>Please take a screenshot of this information and report it.</p>
+            `;
+            
+            this.showError('Authentication System Unavailable', diagnosticsHtml);
             return;
         }
 
@@ -149,8 +182,43 @@ class MepSketcherLicensing {
 
         // Check if user is authenticated
         if (typeof window.supabase === 'undefined') {
-            console.error('Supabase not initialized');
-            this.showError('Authentication system unavailable. Please try again later.');
+            // Comprehensive diagnostic logging
+            const diagnostics = {
+                timestamp: new Date().toISOString(),
+                windowSupabaseDefined: typeof window.supabase !== 'undefined',
+                windowSupabaseValue: typeof window.supabase,
+                windowPaddleDefined: typeof window.Paddle !== 'undefined',
+                windowPaddleConfigDefined: typeof window.PaddleConfig !== 'undefined',
+                isPaddleInitialized: this.isInitialized,
+                documentReadyState: document.readyState,
+                supabaseRelatedProps: Object.keys(window).filter(k => k.toLowerCase().includes('supa')),
+                authRelatedProps: Object.keys(window).filter(k => k.toLowerCase().includes('auth')),
+                paddleRelatedProps: Object.keys(window).filter(k => k.toLowerCase().includes('paddle'))
+            };
+            
+            console.error('Supabase not initialized in purchaseYearlyLicense:', diagnostics);
+            console.log('Full window diagnostic:', diagnostics);
+            
+            // Display diagnostics in error message
+            const diagnosticsHtml = `
+                <p>Unable to load authentication system for purchase. This information will help us diagnose the issue:</p>
+                <div style="background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 4px; font-size: 12px; text-align: left; font-family: monospace; overflow-x: auto;">
+                    <strong>Diagnostics:</strong><br>
+                    Timestamp: ${diagnostics.timestamp}<br>
+                    Document Ready: ${diagnostics.documentReadyState}<br>
+                    Supabase Defined: ${diagnostics.windowSupabaseDefined}<br>
+                    Paddle Defined: ${diagnostics.windowPaddleDefined}<br>
+                    PaddleConfig Defined: ${diagnostics.windowPaddleConfigDefined}<br>
+                    Paddle Initialized: ${diagnostics.isPaddleInitialized}<br>
+                    <strong>Available window properties:</strong><br>
+                    Supabase-related: ${diagnostics.supabaseRelatedProps.join(', ') || 'None'}<br>
+                    Auth-related: ${diagnostics.authRelatedProps.join(', ') || 'None'}<br>
+                    Paddle-related: ${diagnostics.paddleRelatedProps.join(', ') || 'None'}
+                </div>
+                <p>Please take a screenshot of this information and report it.</p>
+            `;
+            
+            this.showError('Authentication System Unavailable', diagnosticsHtml);
             return;
         }
 
