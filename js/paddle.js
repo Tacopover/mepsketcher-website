@@ -77,47 +77,13 @@ class MepSketcherLicensing {
      * Start free trial - redirects to login/signup
      */
     async startTrial() {
-        // Check if user is authenticated
+        console.log('Starting trial flow...');
+        
+        // If Supabase is not available, show login dialog
+        // This handles cases where config files fail to load (e.g., on some mobile networks)
         if (typeof window.supabase === 'undefined') {
-            // Comprehensive diagnostic logging
-            const diagnostics = {
-                timestamp: new Date().toISOString(),
-                windowSupabaseDefined: typeof window.supabase !== 'undefined',
-                windowSupabaseValue: typeof window.supabase,
-                windowPaddleDefined: typeof window.Paddle !== 'undefined',
-                windowPaddleConfigDefined: typeof window.PaddleConfig !== 'undefined',
-                documentReadyState: document.readyState,
-                supabaseRelatedProps: Object.keys(window).filter(k => k.toLowerCase().includes('supa')),
-                authRelatedProps: Object.keys(window).filter(k => k.toLowerCase().includes('auth')),
-                paddleRelatedProps: Object.keys(window).filter(k => k.toLowerCase().includes('paddle'))
-            };
-            
-            console.error('Supabase not initialized in startTrial:', diagnostics);
-            console.log('Full window diagnostic:', diagnostics);
-            
-            // Display diagnostics in error message
-            const diagnosticsHtml = `
-                <div style="margin-bottom: 15px;">
-                    <p>Unable to load authentication system. This information will help us diagnose the issue:</p>
-                </div>
-                <div style="background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 4px; font-size: 12px; text-align: left; font-family: monospace; overflow-x: auto;">
-                    <div><strong>Diagnostics:</strong></div>
-                    <div>Timestamp: ${diagnostics.timestamp}</div>
-                    <div>Document Ready: ${diagnostics.documentReadyState}</div>
-                    <div>Supabase Defined: ${diagnostics.windowSupabaseDefined}</div>
-                    <div>Paddle Defined: ${diagnostics.windowPaddleDefined}</div>
-                    <div>PaddleConfig Defined: ${diagnostics.windowPaddleConfigDefined}</div>
-                    <div style="margin-top: 8px;"><strong>Available window properties:</strong></div>
-                    <div>Supabase-related: ${diagnostics.supabaseRelatedProps.join(', ') || 'None'}</div>
-                    <div>Auth-related: ${diagnostics.authRelatedProps.join(', ') || 'None'}</div>
-                    <div>Paddle-related: ${diagnostics.paddleRelatedProps.join(', ') || 'None'}</div>
-                </div>
-                <div style="margin-top: 15px;">
-                    <p>Please take a screenshot of this information and report it.</p>
-                </div>
-            `;
-            
-            this.showError('Authentication System Unavailable', diagnosticsHtml);
+            console.warn('Supabase client not available, redirecting to login');
+            this.showLoginDialog('trial');
             return;
         }
 
@@ -186,51 +152,12 @@ class MepSketcherLicensing {
 
         // Check if user is authenticated
         if (typeof window.supabase === 'undefined') {
-            // Comprehensive diagnostic logging
-            const diagnostics = {
-                timestamp: new Date().toISOString(),
-                windowSupabaseDefined: typeof window.supabase !== 'undefined',
-                windowSupabaseValue: typeof window.supabase,
-                windowPaddleDefined: typeof window.Paddle !== 'undefined',
-                windowPaddleConfigDefined: typeof window.PaddleConfig !== 'undefined',
-                isPaddleInitialized: this.isInitialized,
-                documentReadyState: document.readyState,
-                supabaseRelatedProps: Object.keys(window).filter(k => k.toLowerCase().includes('supa')),
-                authRelatedProps: Object.keys(window).filter(k => k.toLowerCase().includes('auth')),
-                paddleRelatedProps: Object.keys(window).filter(k => k.toLowerCase().includes('paddle'))
-            };
-            
-            console.error('Supabase not initialized in purchaseYearlyLicense:', diagnostics);
-            console.log('Full window diagnostic:', diagnostics);
-            
-            // Display diagnostics in error message
-            const diagnosticsHtml = `
-                <div style="margin-bottom: 15px;">
-                    <p>Unable to load authentication system for purchase. This information will help us diagnose the issue:</p>
-                </div>
-                <div style="background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 4px; font-size: 12px; text-align: left; font-family: monospace; overflow-x: auto;">
-                    <div><strong>Diagnostics:</strong></div>
-                    <div>Timestamp: ${diagnostics.timestamp}</div>
-                    <div>Document Ready: ${diagnostics.documentReadyState}</div>
-                    <div>Supabase Defined: ${diagnostics.windowSupabaseDefined}</div>
-                    <div>Paddle Defined: ${diagnostics.windowPaddleDefined}</div>
-                    <div>PaddleConfig Defined: ${diagnostics.windowPaddleConfigDefined}</div>
-                    <div>Paddle Initialized: ${diagnostics.isPaddleInitialized}</div>
-                    <div style="margin-top: 8px;"><strong>Available window properties:</strong></div>
-                    <div>Supabase-related: ${diagnostics.supabaseRelatedProps.join(', ') || 'None'}</div>
-                    <div>Auth-related: ${diagnostics.authRelatedProps.join(', ') || 'None'}</div>
-                    <div>Paddle-related: ${diagnostics.paddleRelatedProps.join(', ') || 'None'}</div>
-                </div>
-                <div style="margin-top: 15px;">
-                    <p>Please take a screenshot of this information and report it.</p>
-                </div>
-            `;
-            
-            this.showError('Authentication System Unavailable', diagnosticsHtml);
+            console.warn('Supabase client not available, redirecting to login');
+            this.showLoginDialog('purchase');
             return;
         }
 
-        console.log('Checking authentication...');
+        console.log('Checking authentication for purchase...');
         
         // Get current user
         const { data: { user }, error: userError } = await window.supabase.auth.getUser();
@@ -239,9 +166,9 @@ class MepSketcherLicensing {
         console.log('User error:', userError);
         
         if (userError || !user) {
-            console.log('User not authenticated, showing login dialog');
+            console.log('User not authenticated, showing login dialog for purchase');
             // Show login dialog instead of redirecting
-            this.showLoginDialog();
+            this.showLoginDialog('purchase');
             return;
         }
 
