@@ -81,6 +81,29 @@
                     to streamline your workflow and improve project efficiency.
                 </p>
             </div>
+
+            <!-- Screenshots Section -->
+            <div id="screenshots" class="screenshots-section">
+                <h3 class="screenshots-title">Screenshots</h3>
+                <div class="screenshots-grid">
+                    <div class="screenshot-item">
+                        <img src="images/Example_Electrical.png" alt="Electrical" class="screenshot-thumbnail" data-full-src="images/Example_Electrical.png" data-discipline="Electrical">
+                        <p class="screenshot-label">Electrical</p>
+                    </div>
+                    <div class="screenshot-item">
+                        <img src="images/Example_Sanitary.png" alt="Sanitary" class="screenshot-thumbnail" data-full-src="images/Example_Sanitary.png" data-discipline="Sanitary">
+                        <p class="screenshot-label">Sanitary</p>
+                    </div>
+                    <div class="screenshot-item">
+                        <img src="images/Example_Sprinkler.png" alt="Sprinkler" class="screenshot-thumbnail" data-full-src="images/Example_Sprinkler.png" data-discipline="Sprinkler">
+                        <p class="screenshot-label">Sprinkler</p>
+                    </div>
+                    <div class="screenshot-item">
+                        <img src="images/Example_Ventilation.png" alt="Ventilation" class="screenshot-thumbnail" data-full-src="images/Example_Ventilation.png" data-discipline="Ventilation">
+                        <p class="screenshot-label">Ventilation</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -346,8 +369,13 @@
 
     <!-- Image Lightbox Modal -->
     <div id="imageModal" class="lightbox-modal">
-        <span id="closeModal" class="lightbox-close">&times;</span>
-        <img id="modalImage" class="lightbox-image" src="" alt="">
+        <button id="closeModal" class="lightbox-close" aria-label="Close">×</button>
+        <button id="prevModal" class="lightbox-nav lightbox-prev" aria-label="Previous">&#10094;</button>
+        <button id="nextModal" class="lightbox-nav lightbox-next" aria-label="Next">&#10095;</button>
+        <div class="lightbox-image-container">
+            <img id="modalImage" class="lightbox-image" src="" alt="">
+            <p id="modalDiscipline" class="lightbox-caption"></p>
+        </div>
     </div>
 
     <!-- Supabase -->

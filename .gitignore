@@ -220,3 +220,11 @@ COMPLETE_SETUP_GUIDE.md
 EDGE_FUNCTIONS_SECRETS_REFERENCE.md
 
 .architecture/SECURITY_FIXES_PLAN.md
+admin-server.js
+ADMIN_README.md
+ADMIN_SETUP.md
+admin.html
+start-admin.sh
+css/admin.css
+js/admin.js
+.env.example
