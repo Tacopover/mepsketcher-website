@@ -148,22 +148,18 @@ export class MembersManager {
       throw new Error(licenses.message || 'Cannot add member at this time');
     }
 
-    // 2. Check if user already exists in user_profiles (simple query)
-    const { data: existingProfile, error: profileError } = await this.supabase
-      .from('user_profiles')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
+    // 2. Check if user already exists via server-side lookup (bypasses user_profiles RLS)
+    const { data: existingUserId, error: profileError } = await this.supabase
+      .rpc('find_user_id_by_email', { p_email: email });
 
-    if (profileError && profileError.code !== 'PGRST116') {
-      // PGRST116 is "no rows returned" which is fine
+    if (profileError) {
       console.error('Error checking user profile:', profileError);
       throw profileError;
     }
 
-    if (existingProfile) {
+    if (existingUserId) {
       // User exists - add directly as active member
-      return await this.addExistingUserToOrg(existingProfile.id, email, role);
+      return await this.addExistingUserToOrg(existingUserId, email, role);
     } else {
       // User doesn't exist - create pending invitation
       return await this.createPendingInvitation(email, role);

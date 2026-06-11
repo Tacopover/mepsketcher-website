@@ -39,7 +39,7 @@ interface ScheduledChange {
 Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseServiceKey = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")!)['default'];
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log("Starting scheduled license changes application...");

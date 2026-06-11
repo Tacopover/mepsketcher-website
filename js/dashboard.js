@@ -1257,65 +1257,6 @@ function showLicenseManagementMessage(text, type) {
 // End License Management Modal Functions
 // ============================================================================
 
-// Handle adding a member to organization (LEGACY - replaced by modal)
-async function handleAddMember(orgId) {
-    const emailInput = document.getElementById('newMemberEmail');
-    const roleSelect = document.getElementById('newMemberRole');
-    
-    const email = emailInput.value.trim();
-    const role = roleSelect.value;
-
-    if (!email) {
-        alert('Please enter an email address');
-        return;
-    }
-
-    // Simple query: Find user by email in user_profiles
-    const { data: profile, error: profileError } = await authService.supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-
-    if (profileError || !profile) {
-        alert('User not found. Make sure they have registered an account.');
-        return;
-    }
-
-    // Simple query: Check if already an active member
-    const { data: existing } = await authService.supabase
-        .from('organization_members')
-        .select('user_id, status')
-        .eq('organization_id', orgId)
-        .eq('user_id', profile.id)
-        .eq('status', 'active') // Only check for active members
-        .maybeSingle();
-
-    if (existing) {
-        alert('This user is already a member of the organization');
-        return;
-    }
-
-    // Simple insert: Add member
-    const { error: insertError } = await authService.supabase
-        .from('organization_members')
-        .insert({
-            organization_id: orgId,
-            user_id: profile.id,
-            role: role,
-            created_at: new Date().toISOString()
-        });
-
-    if (insertError) {
-        alert(`Error adding member: ${insertError.message}`);
-        console.error('Add member error:', insertError);
-    } else {
-        alert('Member added successfully!');
-        emailInput.value = '';
-        await loadOrganizationData(); // Reload organization data
-    }
-}
-
 // Handle removing a member from organization
 async function handleRemoveMember(userId, memberName, orgId) {
     const confirmed = confirm(`Are you sure you want to remove ${memberName} from the organization?\n\nThey will lose access and their license will be freed.`);

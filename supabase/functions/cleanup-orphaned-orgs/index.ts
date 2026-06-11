@@ -22,7 +22,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("authorization");
     const expectedKey =
       Deno.env.get("CLEANUP_SECRET_KEY") ||
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? '{}')['default'];
 
     if (!authHeader || !expectedKey) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -42,7 +42,7 @@ serve(async (req) => {
     // Initialize Supabase admin client
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? '{}')['default'] ?? ""
     );
 
     console.log("Starting cleanup of orphaned personal trial organizations...");

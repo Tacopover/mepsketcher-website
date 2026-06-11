@@ -32,7 +32,7 @@ serve(async (req) => {
     // Create Supabase client with SERVICE ROLE (can modify auth.users)
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? '{}')['default'] ?? "",
       {
         auth: {
           autoRefreshToken: false,

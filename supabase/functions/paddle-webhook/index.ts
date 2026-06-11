@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseServiceKey = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")!)['default'];
     const paddleWebhookSecret = Deno.env.get("PADDLE_WEBHOOK_SECRET")!;
 
     const bodyText = await req.text();
