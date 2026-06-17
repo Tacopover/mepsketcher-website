@@ -55,3 +55,6 @@ verify_jwt = false
 
 [functions.assign-trial-user]
 verify_jwt = false
+
+[functions.send-verification-reminders]
+verify_jwt = false
