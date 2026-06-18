@@ -15,7 +15,8 @@ function esc(str) {
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 function relTime(dateStr) {
@@ -263,14 +264,16 @@ function renderMemberRows(members) {
                 ? `invited ${shortDate(m.invited_at)}`
                 : '';
         const nameNote  = m.name ? ` <span class="cell-muted">(${esc(m.name)})</span>` : '';
-        const licSpan   = m.has_license
+        const licSpan   = m.has_license === true
             ? '<span class="lic-yes">✓ licensed</span>'
-            : '<span class="lic-no">✗ no license</span>';
+            : m.has_license === false
+                ? '<span class="lic-no">✗ no license</span>'
+                : '—';
 
         return `<div class="member-row">
             <span class="member-tree">${isLast ? '└─' : '├─'}</span>
             <span class="member-email">${esc(m.email || '—')}${nameNote}</span>
-            <span class="member-role ${m.role === 'admin' ? 'role-admin' : 'role-member'}">${esc(m.role)}</span>
+            <span class="member-role ${m.role === 'admin' ? 'role-admin' : 'role-member'}">${esc(m.role || '—')}</span>
             ${licSpan}
             ${joinText ? `<span class="member-join">${joinText}</span>` : ''}
             ${isPending ? '<span class="bdg bdg-blue">INVITE PENDING</span>' : ''}
