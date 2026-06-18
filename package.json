@@ -1,5 +1,10 @@
 {
+  "scripts": {
+    "start": "node admin-server.js",
+    "dev": "nodemon admin-server.js"
+  },
   "devDependencies": {
+    "nodemon": "^3.1.0",
     "supabase": "^2.51.0"
   },
   "dependencies": {
