@@ -336,7 +336,7 @@ Deno.serve(async (req) => {
         .from("pending_organizations")
         .insert({
           user_id: userId,
-          user_email: email,
+          user_email: email.toLowerCase(),
           user_name: name,
           organization_name: orgName,
         });
