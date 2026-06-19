@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — MepSketcher</title>
+  <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+  <header class="adm-header">
+    <div class="adm-brand">MepSketcher <span class="adm-badge">ADMIN</span></div>
+    <nav class="adm-nav">
+      <button class="adm-nav-btn active" data-view="users">Users</button>
+      <button class="adm-nav-btn" data-view="orgs">Organizations</button>
+    </nav>
+    <button class="adm-refresh-btn" id="refreshBtn">↻ Refresh</button>
+  </header>
+
+  <div class="adm-stats" id="statsBar">Loading stats...</div>
+
+  <div class="adm-toolbar">
+    <input type="text" class="adm-search" id="searchInput" placeholder="Search users, orgs, emails…">
+  </div>
+
+  <main class="adm-main">
+    <div id="viewUsers"><p class="adm-empty">Loading…</p></div>
+    <div id="viewOrgs" style="display:none"><p class="adm-empty">Loading…</p></div>
+  </main>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

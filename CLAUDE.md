@@ -8,6 +8,10 @@ Marketing and user-facing website for MepSketcher (a MEP CAD tool). Static HTML/
 
 **Stack:** HTML + CSS + Vanilla JS (no build step) · Supabase (Auth, PostgreSQL, Edge Functions in Deno/TypeScript) · Paddle v2 · Github Pages (hosting)
 
+## Documentation Map
+
+Start at **[docs/INDEX.md](docs/INDEX.md)** — concise overview of architecture, auth, edge functions, database, payments, licensing, admin panel, deployment, and conventions. Use it as the entry point before reading code. (Older planning docs live in `docs/implementation-plans/`.)
+
 ## Development
 
 **No build process.** Open any HTML file directly in a browser or serve locally:
@@ -73,12 +77,17 @@ Located in `supabase/functions/`. Each is a Deno TypeScript function. Key functi
 | `set-org-claims`                                              | Sets custom JWT claims for org/role                                        |
 | `paddle-webhook`                                              | Handles Paddle payment events (JWT verification disabled in `config.toml`) |
 | `send-invitation-email`                                       | Sends org member invitations via Resend                                    |
+| `send-verification-reminders`                                 | Daily pg_cron job; resends confirmation email to unconfirmed signups (3d/7d) |
 | `license-expiration-checker`                                  | Checks and updates expiring licenses                                       |
 | `schedule-license-change` / `apply-scheduled-license-changes` | Deferred seat changes                                                      |
 
+**Edge function secrets:** functions read Supabase keys from `SUPABASE_SECRET_KEYS` and `SUPABASE_PUBLISHABLE_KEYS` (JSON; use the `['default']` entry) — the new Supabase API key format. The legacy `SUPABASE_SERVICE_ROLE_KEY` env var is **no longer used by any edge function** (only `admin-server.js` still uses it locally via `.env`). Full secret list: [docs/overview/edge-functions.md](docs/overview/edge-functions.md).
+
 ### Database
 
-Migrations in `supabase/migrations/`. Named SQL files in root are one-off fix scripts — apply manually via Supabase dashboard or CLI, not part of the migration sequence.
+Migrations in `supabase/migrations/` (timestamp-prefixed, e.g. `20260617_verification_reminders.sql` — latest applied). `DATABASE_*.sql` files in that dir and `setup-*-cron.sql` are one-off scripts applied **manually** via the Supabase SQL editor / CLI — not part of the migration sequence. Schema reference: [docs/overview/database.md](docs/overview/database.md).
+
+Recurring jobs run via **pg_cron** inside Postgres (calling edge functions over `pg_net`), e.g. `verification-reminders-daily`. See [docs/overview/deployment.md](docs/overview/deployment.md).
 
 ### Admin Panel
 
@@ -86,6 +95,7 @@ Migrations in `supabase/migrations/`. Named SQL files in root are one-off fix sc
 
 ## Key Constraints
 
-- `supabase-config.js` contains the production anon key in plaintext — this is intentional (it's a public key, safe to expose). The service role key must stay in `.env` and never be committed.
+- `supabase-config.js` contains the production anon key in plaintext — this is intentional (it's a public key, safe to expose). The service role key must stay in `.env` (admin panel only) and never be committed.
+- Edge functions authenticate with `SUPABASE_SECRET_KEYS` / `SUPABASE_PUBLISHABLE_KEYS` (JSON, `['default']`), not `SUPABASE_SERVICE_ROLE_KEY`.
 - The `paddle-webhook` edge function has `verify_jwt = false` in `supabase/config.toml` — required because Paddle calls it without a Supabase JWT.
 - `js/supabase-config.local.js` is gitignored — used to override the Supabase URL/key for local Supabase dev.

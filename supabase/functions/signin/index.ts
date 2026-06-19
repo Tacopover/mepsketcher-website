@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
         const { data: pendingOrgs, error: pendingError } = await supabaseAdmin
           .from("pending_organizations")
           .select("*")
-          .eq("user_email", email);
+          .eq("user_email", email.toLowerCase());
 
         if (pendingError) {
           console.error("Failed to query pending organizations:", pendingError);

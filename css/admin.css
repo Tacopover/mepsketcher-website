@@ -1,0 +1,233 @@
+:root {
+  --bg:         #f0f4f8;
+  --surface:    #ffffff;
+  --border:     #e2e8f0;
+  --text:       #1a202c;
+  --muted:      #718096;
+  --hdr-bg:     #1a202c;
+  --stats-bg:   #2d3748;
+  --stats-text: #e2e8f0;
+
+  --green:      #276749; --green-bg:  #c6f6d5;
+  --red:        #c53030; --red-bg:    #fed7d7;
+  --yellow:     #744210; --yellow-bg: #fefcbf;
+  --orange:     #7b341e; --orange-bg: #feebc8;
+  --blue:       #2a4365; --blue-bg:   #bee3f8;
+  --gray:       #4a5568; --gray-bg:   #e2e8f0;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Header ────────────────────────────────────── */
+.adm-header {
+  background: var(--hdr-bg);
+  color: #f7fafc;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  height: 52px;
+  gap: 20px;
+}
+.adm-brand { font-weight: 700; font-size: 16px; }
+.adm-badge {
+  background: #e53e3e;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+  vertical-align: middle;
+  letter-spacing: 0.05em;
+}
+.adm-nav { display: flex; gap: 4px; }
+.adm-nav-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.65);
+  padding: 6px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.adm-nav-btn:hover  { background: rgba(255,255,255,0.08); color: #fff; }
+.adm-nav-btn.active { background: rgba(255,255,255,0.14); color: #fff; border-color: rgba(255,255,255,0.4); }
+.adm-refresh-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.75);
+  padding: 5px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.12s, color 0.12s;
+}
+.adm-refresh-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+/* ── Stats bar ─────────────────────────────────── */
+.adm-stats {
+  background: var(--stats-bg);
+  color: var(--stats-text);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  flex-wrap: wrap;
+  min-height: 40px;
+}
+.stat-item  { white-space: nowrap; }
+.stat-sep   { color: rgba(255,255,255,0.25); padding: 0 4px; }
+.stat-warn  { color: #fc8181; }
+.stat-broken {
+  color: #fc8181;
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+.stat-broken:hover { color: #fff; }
+
+/* ── Toolbar ───────────────────────────────────── */
+.adm-toolbar {
+  padding: 12px 24px 8px;
+}
+.adm-search {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  width: 320px;
+  background: var(--surface);
+  color: var(--text);
+}
+.adm-search:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66,153,225,0.15);
+}
+
+/* ── Main ──────────────────────────────────────── */
+.adm-main { padding: 8px 24px 48px; }
+
+/* ── Users table ───────────────────────────────── */
+.adm-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.adm-table th {
+  background: #f7fafc;
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.adm-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.adm-table tbody tr:last-child td { border-bottom: none; }
+.adm-table tbody tr:hover { background: #f7fafc; }
+
+.cell-primary { font-weight: 500; }
+.cell-muted   { color: var(--muted); font-size: 12px; }
+.lic-yes      { color: var(--green); font-weight: 600; }
+.lic-no       { color: var(--red);   font-weight: 600; }
+
+/* ── Badges ────────────────────────────────────── */
+.bdg {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+.bdg-green  { background: var(--green-bg);  color: var(--green);  }
+.bdg-red    { background: var(--red-bg);    color: var(--red);    }
+.bdg-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.bdg-orange { background: var(--orange-bg); color: var(--orange); }
+.bdg-blue   { background: var(--blue-bg);   color: var(--blue);   }
+.bdg-gray   { background: var(--gray-bg);   color: var(--gray);   }
+
+/* ── Org list ──────────────────────────────────── */
+.org-list { display: flex; flex-direction: column; gap: 4px; }
+.org-row {
+  background: var(--surface);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+.org-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+  flex-wrap: wrap;
+}
+.org-header:hover { background: #f7fafc; }
+.org-toggle  { color: var(--muted); font-size: 11px; flex-shrink: 0; width: 14px; }
+.org-name    { font-weight: 600; }
+.warn-icon   { color: #e53e3e; }
+.org-expiry  { color: var(--muted); font-size: 12px; }
+.org-scheduled { color: #b7791f; font-size: 12px; }
+.org-meta    { margin-left: auto; display: flex; gap: 14px; align-items: center; flex-shrink: 0; }
+.org-seats   { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.org-mcount  { color: var(--muted); font-size: 13px; white-space: nowrap; }
+
+/* ── Member rows ───────────────────────────────── */
+.org-members-list {
+  border-top: 1px solid var(--border);
+  background: #fafbfc;
+  padding: 6px 16px 10px 16px;
+}
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.member-tree  { color: var(--muted); font-family: monospace; flex-shrink: 0; }
+.member-email { font-weight: 500; }
+.member-role  { font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+.role-admin   { color: #6b46c1; }
+.role-member  { color: var(--muted); }
+.member-join  { color: var(--muted); font-size: 12px; }
+
+/* ── Misc ──────────────────────────────────────── */
+.adm-empty { color: var(--muted); padding: 40px; text-align: center; }
+.adm-error {
+  color: var(--red);
+  padding: 20px;
+  background: var(--red-bg);
+  border-radius: 8px;
+  text-align: center;
+}
+.adm-count {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 10px;
+  text-align: right;
+}
