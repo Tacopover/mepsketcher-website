@@ -337,6 +337,32 @@
     white-space: nowrap;
 }
 
+.download-help {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--background-color);
+}
+
+.download-help summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.download-help p {
+    margin: var(--spacing-xs) 0;
+    color: var(--text-secondary);
+}
+
+.download-help-image {
+    max-width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-top: var(--spacing-xs);
+}
+
 /* License List */
 .license-list {
     list-style: none;
