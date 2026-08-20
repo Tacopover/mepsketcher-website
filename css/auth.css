@@ -345,8 +345,7 @@
     background-color: var(--background-color);
 }
 
-.download-help summary {
-    cursor: pointer;
+.download-help-title {
     font-weight: 600;
     color: var(--primary-color);
 }
@@ -357,7 +356,7 @@
 }
 
 .download-help-image {
-    max-width: 100%;
+    max-width: 70%;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     margin-top: var(--spacing-xs);
